@@ -12,7 +12,7 @@ twoPi = 2.0 * np.pi
 day2sec = 1.0 / (24.0 * 3600.0)  # days to seconds
 
 # You can adjust or comment out the number of time points
-num_time_pts = 121
+num_time_pts = 1000
 # convert (deg/min) -> (rad/s)
 omega_earth = 0.2506844773746215 * (deg2rad / 60)
 
