@@ -1,41 +1,52 @@
 import numpy as np
-from tle_to_kep import ConvertTLEToKepElem
-from TimeRoutines import Nth_day_to_date, JdayInternal, CalculateGMSTFromJD
-from coordinate_conversions import ConvertKeplerToECI, ConvertECIToECEF, ComputeGeodeticLon, ComputeGeodeticLat2
 from datetime import datetime
 import constants as c
+
+from tle_to_kep import ConvertTLEToKepElem
+from TimeRoutines import Nth_day_to_date, JdayInternal, CalculateGMSTFromJD
+from coordinate_conversions import (
+    ConvertKeplerToECI,
+    ConvertECIToECEF,
+    ComputeGeodeticLon,
+    ComputeGeodeticLat2
+)
 
 
 def ConvertKepToStateVectors(tle_dict):
     """
-    Converts TLE dictionary (parsed by ParseTwoLineElementFile) into
-    satellite latitude and longitude positions for visualization.
+    Converts a TLE dictionary into satellite lat/lon prediction tracks over time.
 
     Returns:
-        latslons_dict: dict where each key is a satellite name, and value is
-                       a Nx2 numpy array of [lon_deg, lat_deg] positions.
+        latslons_dict: Dictionary mapping satellite name to Nx2 array of [lon_deg, lat_deg]
     """
-    # Use current UTC time as start/end
+    # Use current UTC time as both the start and end time input
     utc_now = datetime.utcnow()
     utc_start_time = utc_now.strftime('%Y %m %d %H %M %S')
     utc_end_time = utc_start_time
 
-    # Convert TLE data to keplerian elements
-    kep_elem_dict, time_vec, epoch_year = ConvertTLEToKepElem(tle_dict, utc_start_time, utc_end_time)
+    # Convert TLEs to orbital elements
+    kep_elem_dict, _, epoch_year = ConvertTLEToKepElem(tle_dict, utc_start_time, utc_end_time)
 
-    # Get start/end days based on epoch + 10 minutes
-    delta_days = (10 * 60) / (24.0 * 3600.0)  # 10 minutes in days
+    # Get a representative epoch_days from the first satellite in the dict
+    any_key = next(iter(kep_elem_dict))
+    epoch_days = kep_elem_dict[any_key][:, 8][0]
+
+    # Build a time vector from epoch_days forward 10 minutes
+    delta_days = (10 * 60) / (24.0 * 3600.0)  # 10 minutes in fractional days
     start_day = epoch_days
     end_day = start_day + delta_days
     time_vec = np.linspace(start_day, end_day, num=c.num_time_pts)
 
+    # Get UTC time array in Y M D H M S
     time_array = Nth_day_to_date(epoch_year, time_vec)
 
-    # Get Julian Date and Greenwich Mean Sidereal Time
+    # Compute Julian date and GMST
     jday = JdayInternal(time_array)
     gmst = CalculateGMSTFromJD(jday, time_vec)
 
     latslons_dict = {}
+    print(f"[DEBUG] Satellites received: {list(kep_elem_dict.keys())}")
+    print(f"[DEBUG] Time vector range: {time_vec[0]:.5f} to {time_vec[-1]:.5f} ({len(time_vec)} steps)")
 
     for key in kep_elem_dict:
         values = kep_elem_dict[key]
@@ -46,37 +57,36 @@ def ConvertKepToStateVectors(tle_dict):
         Omega = values[:, 3]  # RA of ascending node
         w = values[:, 4]  # argument of perigee
         nu = values[:, 5]  # true anomaly
-        epoch_days = values[:, 8]  # days from epoch
+        epoch_days = values[:, 8]  # epoch (in days) per sat
 
-        # Compute time difference from epoch
+        # Time difference from TLE epoch to prediction times
         delta_time_vec = time_vec - epoch_days
 
-        # Convert to ECI
+        # ECI position/velocity
         X_eci, Y_eci, Z_eci, Xdot_eci, Ydot_eci, Zdot_eci = ConvertKeplerToECI(
             a, e, i, Omega, w, nu, delta_time_vec
         )
 
         # Convert to ECEF
         X_ecef, Y_ecef, Z_ecef = ConvertECIToECEF(X_eci, Y_eci, Z_eci, gmst)
-        print(f"[DEBUG] X_ecef: {X_ecef[:3]}")
-        print(f"[DEBUG] Y_ecef: {Y_ecef[:3]}")
-        print(f"[DEBUG] Z_ecef: {Z_ecef[:3]}")
-        print(f"[DEBUG] a: {a[:3]}")
-        print(f"[DEBUG] e: {e[:3]}")
 
-        # Convert ECEF to geodetic lat/lon (in radians)
+        # Compute geodetic coordinates
         lons = ComputeGeodeticLon(X_ecef, Y_ecef)
         lats = ComputeGeodeticLat2(X_ecef, Y_ecef, Z_ecef, a, e)
 
-        # Convert to degrees
-        lats *= c.rad2deg
+        # Convert radians to degrees
         lons *= c.rad2deg
+        lats *= c.rad2deg
 
-        # Build result array [lon, lat]
+        # Store in array
         n_rows = len(lats)
         results = np.zeros((n_rows, 2), dtype=float)
         results[:, 0] = lons
         results[:, 1] = lats
+        print(f"[{key}] Track shape: {results.shape}")
+        print(f"[{key}] Lon range: {np.min(lons):.2f}° to {np.max(lons):.2f}°")
+        print(f"[{key}] Lat range: {np.min(lats):.2f}° to {np.max(lats):.2f}°")
+
         latslons_dict[key] = results
 
     return latslons_dict
