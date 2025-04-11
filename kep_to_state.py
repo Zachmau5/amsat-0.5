@@ -164,8 +164,33 @@ def ConvertKepToStateVectors(tle_dict, use_skyfield=False):
 
     # Use current year for epoch
     epoch_year = utc_now.year
-
+# this plots it to the rear
+    # # Calculate fractional day-of-year from utc_now
+    # day_of_year = utc_now.timetuple().tm_yday
+    # fractional_day = (
+    #     day_of_year +
+    #     utc_now.hour / 24.0 +
+    #     utc_now.minute / 1440.0 +
+    #     utc_now.second / 86400.0
+    # )
+    #
+    # # Prediction range: now → now + 90 minutes
+    # delta_days = (90 * 60) / (24.0 * 3600.0)  # 90 minutes in days
+    # start_day = fractional_day
+    # end_day = start_day + delta_days
+    # time_vec = np.linspace(start_day, end_day, num=c.num_time_pts)
+    #
+    # # Convert fractional day to full UTC format array
+    # time_array = Nth_day_to_date(epoch_year, time_vec)
+    #
+    # # GMST for ECI → ECEF conversion
+    # jday = JdayInternal(time_array)
+    # gmst = CalculateGMSTFromJD(jday, time_vec)
+    #
+    # latslons_dict = {}
     # Calculate fractional day-of-year from utc_now
+    utc_now = datetime.utcnow()
+    year = utc_now.year
     day_of_year = utc_now.timetuple().tm_yday
     fractional_day = (
         day_of_year +
@@ -180,15 +205,17 @@ def ConvertKepToStateVectors(tle_dict, use_skyfield=False):
     end_day = start_day + delta_days
     time_vec = np.linspace(start_day, end_day, num=c.num_time_pts)
 
-    # Convert fractional day to full UTC format array
-    time_array = Nth_day_to_date(epoch_year, time_vec)
+    # Convert fractional day-of-year to full UTC array (Y M D H M S)
+    time_array = Nth_day_to_date(year, time_vec)
 
     # GMST for ECI → ECEF conversion
     jday = JdayInternal(time_array)
     gmst = CalculateGMSTFromJD(jday, time_vec)
 
     latslons_dict = {}
-
+    epoch_days = kep_elem_dict["ISS (ZARYA)"][0, 8]
+    print(f"TLE Epoch Day of Year: {epoch_days:.5f}")
+    print(f"Current fractional day: {fractional_day:.5f}")
 
     for key in kep_elem_dict:
         values = kep_elem_dict[key]
@@ -198,7 +225,7 @@ def ConvertKepToStateVectors(tle_dict, use_skyfield=False):
         Omega = values[:, 3]
         w = values[:, 4]
         nu = values[:, 5]
-        epoch_days = values[:, 8]
+        # epoch_days = values[:, 8]
 
         delta_time_vec = time_vec - epoch_days
         X_eci, Y_eci, Z_eci, Xdot_eci, Ydot_eci, Zdot_eci = ConvertKeplerToECI(
@@ -226,9 +253,7 @@ def ConvertKepToStateVectors(tle_dict, use_skyfield=False):
 
         latslons_dict[key] = results
     # Print TLE epoch
-        epoch_days = kep_elem_dict["ISS (ZARYA)"][0, 8]
-        print(f"TLE Epoch Day of Year: {epoch_days:.5f}")
-        print(f"Current fractional day: {fractional_day:.5f}")
+
 
 
     return latslons_dict
