@@ -10,8 +10,8 @@ def ConvertLocalTimeToUTC(local_time, used_format='%Y %m %d %H %M %S'):
     to a UTC time string of the same format.
     """
     local_dt = datetime.datetime.strptime(local_time, used_format)
-    local_tz = pytz.timezone("America/New_York")
-    local_dt = local_tz.localize(local_dt, is_dst=False)
+    local_tz = pytz.timezone("Etc/GMT+6")
+    local_dt = local_tz.localize(local_dt, is_dst=True)
     utc_dt = local_dt.astimezone(pytz.utc)
     return utc_dt.strftime(used_format)
 

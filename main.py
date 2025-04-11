@@ -310,6 +310,7 @@ def split_segments(lons, lats, max_jump=180):
 def animate(ii, selected_tle_dict):
     global track_lines, track_labels
 
+    # Clear previous plot elements
     for ln in track_lines:
         try:
             ln.remove()
@@ -339,6 +340,14 @@ def animate(ii, selected_tle_dict):
         wrapped_lons = raw_lons
         segments = split_segments(wrapped_lons, raw_lats)
 
+        # Plot the satellite's position at the beginning of the trace (first point)
+        first_lon = raw_lons[0]
+        first_lat = raw_lats[0]
+        xx, yy = myMap(first_lon, first_lat)
+        pt, = ax.plot(xx, yy, 'r*', markersize=10, zorder=10)
+        track_lines.append(pt)
+
+        # Plot the trace for the satellite
         for idx, (seg_lon, seg_lat) in enumerate(segments):
             if len(seg_lon) < 2:
                 continue
@@ -348,12 +357,7 @@ def animate(ii, selected_tle_dict):
             dots, = ax.plot(x, y, 'wo', markersize=2, zorder=6)
             track_lines.extend([line, dots])
 
-        last_lon = raw_lons[-1]
-        last_lat = raw_lats[-1]
-        xx, yy = myMap(last_lon, last_lat)
-        pt, = ax.plot(xx, yy, 'r*', markersize=10, zorder=10)
-        track_lines.append(pt)
-
+        # Add label for satellite
         label = ax.annotate(sat_name, xy=(xx, yy), xytext=(xx + 6, yy + 6),
                             color='yellow', fontsize=9, zorder=11)
         track_labels.append(label)
@@ -365,6 +369,7 @@ def animate(ii, selected_tle_dict):
     fig.canvas.flush_events()
 
     return track_lines
+
 
 def runPredictionTool(checkbox_dict, tle_dict):
     selected_tle_dict = {k: tle_dict[k] for k, v in checkbox_dict.items() if v.get() == 1}
