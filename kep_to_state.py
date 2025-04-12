@@ -13,21 +13,22 @@ from coordinate_conversions import (
 )
 
 
-def ConvertKepToStateVectors(tle_dict, use_skyfield=False):
+def ConvertKepToStateVectors(tle_dict, use_skyfield=True):
     """
     Converts TLE dictionary into satellite lat/lon predictions.
     If use_skyfield=True, uses Skyfield instead of custom orbital math.
     """
-    if use_skyfield:
-        latslons_dict = {}
-        for sat_name in tle_dict:
-            try:
-                ts, sat = load_satellite_from_tle("amateur.tle", sat_name)
-                track = get_groundtrack(sat, ts)
-                latslons_dict[sat.name] = track
-            except Exception as e:
-                print(f"[Skyfield ERROR] {sat_name}: {e}")
-        return latslons_dict
+    # if use_skyfield:
+    #     latslons_dict = {}
+    #     print(f"got into use skyfield")
+    #     for sat_name in tle_dict:
+    #         try:
+    #             ts, sat = load_satellite_from_tle("amateur.tle", sat_name)
+    #             track = get_groundtrack(sat, ts)
+    #             latslons_dict[sat.name] = track
+    #         except Exception as e:
+    #             print(f"[Skyfield ERROR] {sat_name}: {e}")
+    #     return latslons_dict
 
     # === Fixed Live Mode Prediction ===
     utc_now = datetime.utcnow()
@@ -89,7 +90,7 @@ def ConvertKepToStateVectors(tle_dict, use_skyfield=False):
     gmst = CalculateGMSTFromJD(jday, time_vec)
 
     latslons_dict = {}
-    epoch_days = kep_elem_dict["ISS (ZARYA)"][0, 8]
+    # epoch_days = kep_elem_dict["ISS (ZARYA)"][0, 8]
     # print(f"TLE Epoch Day of Year: {epoch_days:.5f}")
     # print(f"Current fractional day: {fractional_day:.5f}")
 
@@ -101,7 +102,7 @@ def ConvertKepToStateVectors(tle_dict, use_skyfield=False):
         Omega = values[:, 3]
         w = values[:, 4]
         nu = values[:, 5]
-        # epoch_days = values[:, 8]
+        epoch_days = values[:, 8]
 
         delta_time_vec = time_vec - epoch_days
         X_eci, Y_eci, Z_eci, Xdot_eci, Ydot_eci, Zdot_eci = ConvertKeplerToECI(
