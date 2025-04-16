@@ -77,8 +77,12 @@ The main application that:
    ```bash
    git clone <repository_url>
    cd <repository_directory>
-2. ** Create and Activate Virtual Environment**
-3. python -m venv venv
+2. **Create and Activate Virtual Environment:**
    ```bash
-  source venv/bin/activate      # For Unix/MacOS
-  venv\Scripts\activate         # For Windows
+    python -m venv venv
+    source venv/bin/activate      # For Unix/MacOS
+    venv\Scripts\activate         # For Windows
+3. **Install Required Packages:**
+    ```bash
+    pip install -r requirements.txt
+  
