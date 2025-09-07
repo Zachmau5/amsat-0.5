@@ -1,5 +1,6 @@
 # amsat
 ## Features
+<img width="800" height="470" alt="image" src="https://github.com/user-attachments/assets/2634a2b6-add2-4bc3-a064-322594a1592e" />
 
 - **TLE Parsing:** Reads TLE files and extracts orbital parameters (Epoch, Inclination, RAAN, Eccentricity, Argument of Perigee, Mean Anomaly, Mean Motion) for each satellite.
 - **Keplerian Propagation:** Uses Kepler's equations to propagate the satellite's orbit. This includes:
@@ -16,16 +17,16 @@
 - **Optional TLE Fetching:** A module can download updated TLE data from public sources (e.g., CelesTrak).
 ## File Structure
 
-- **constants.py:**  
+- **constants.py:**
   Defines physical and mathematical constants (e.g., Earth’s gravitational parameter, Earth’s radius, conversion factors).
 
-- **coordinate_conversions.py:**  
+- **coordinate_conversions.py:**
   Contains functions to perform coordinate transformations:
   - `ConvertKeplerToECI`: Converts orbital elements from the perifocal (PQW) frame to the Earth-Centered Inertial (ECI) system.
   - `ConvertECIToECEF`: Converts ECI coordinates to Earth-Centered Earth-Fixed (ECEF) coordinates using GMST.
   - `ComputeGeodeticLon` and `ComputeGeodeticLat2`: Convert ECEF coordinates to geodetic coordinates (longitude and latitude).
 
-- **TimeRoutines.py:**  
+- **TimeRoutines.py:**
   Provides utilities for time conversion:
   - `ConvertLocalTimeToUTC`: Converts a local time string to a UTC time string.
   - `GenerateTimeVec`: Generates a time vector (in fractional days) between specified start and end times.
@@ -33,28 +34,28 @@
   - `JdayInternal`: Converts an array of [year, month, day, hour, min, sec] into Julian Dates.
   - `CalculateGMSTFromJD`: Computes Greenwich Mean Sidereal Time (GMST) from Julian Dates.
 
-- **tle_to_kep.py:**  
+- **tle_to_kep.py:**
   Converts parsed TLE data into evolving Keplerian elements (semi-major axis, eccentricity, inclination, RAAN, argument of perigee, true anomaly, eccentric anomaly, etc.) for a specified time range. Uses the Newton-Raphson method to solve Kepler’s Equation.
 
-- **keplerian_parser.py:**  
+- **keplerian_parser.py:**
   Parses a TLE text file and returns a dictionary where each satellite name maps to an array of orbital elements: sat_name: {[epoch_year, epoch_days, inclination, RAAN, eccentricity, arg_perigee, mean_anomaly, mean_motion, drag]}
 
-- **kep_to_state.py:**  
+- **kep_to_state.py:**
 Converts the Keplerian elements produced by tle_to_kep.py into state vectors (position and velocity). This includes:
 - Computing the satellite’s position in ECI coordinates.
 - Converting ECI to ECEF using GMST.
 - Converting ECEF to geodetic coordinates (latitude, longitude, altitude).
 
-- **fetch_tle.py:**  
+- **fetch_tle.py:**
 (Optional) Downloads TLE data from an online source (e.g., CelesTrak) and saves it to a local file.
 
-- **sgp4_predictor.py / tle_sgp4_predictor.py:**  
+- **sgp4_predictor.py / tle_sgp4_predictor.py:**
 (Optional) Provide alternative propagation methods using the SGP4 model to account for perturbations.
 
-- **skyfield_predictor.py:**  
+- **skyfield_predictor.py:**
 (Optional) Uses the Skyfield library to load and propagate satellite positions from TLE data.
 
-- **main.py:**  
+- **main.py:**
 The main application that:
 - Loads TLE data.
 - Provides a Tkinter-based GUI for selecting satellites.
@@ -85,4 +86,3 @@ The main application that:
 3. **Install Required Packages:**
     ```bash
     pip install -r requirements.txt
-  
