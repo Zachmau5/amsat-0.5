@@ -2,7 +2,7 @@
 ## Features
 <img width="800" height="470" alt="image" src="https://github.com/user-attachments/assets/2634a2b6-add2-4bc3-a064-322594a1592e" />
 
-- **TLE Parsing:** Reads TLE files and extracts orbital parameters (Epoch, Inclination, RAAN, Eccentricity, Argument of Perigee, Mean Anomaly, Mean Motion) for each satellite.
+<!--- **TLE Parsing:** Reads TLE files and extracts orbital parameters (Epoch, Inclination, RAAN, Eccentricity, Argument of Perigee, Mean Anomaly, Mean Motion) for each satellite.
 - **Keplerian Propagation:** Uses Kepler's equations to propagate the satellite's orbit. This includes:
   - Calculating the evolving Mean Anomaly over time.
   - Solving Kepler’s Equation with the Newton-Raphson method to obtain the Eccentric Anomaly.
@@ -60,7 +60,7 @@ The main application that:
 - Loads TLE data.
 - Provides a Tkinter-based GUI for selecting satellites.
 - Sets up animated maps (global view and near-sided perspective) to visualize satellite ground tracks and footprints.
-  ## Installation
+  ## Installation-->
 
 ### Requirements
 - Python 3.7+
@@ -78,11 +78,18 @@ The main application that:
    ```bash
    git clone <repository_url>
    cd <repository_directory>
+
 2. **Create and Activate Virtual Environment:**
    ```bash
-    python -m venv venv
-    source venv/bin/activate      # For Unix/MacOS
-    venv\Scripts\activate         # For Windows
-3. **Install Required Packages:**
-    ```bash
-    pip install -r requirements.txt
+   conda env create -f amsat.yml
+   conda activate amsat
+
+3. **Run Tracking Software:**
+  ```bash
+  python3 main_gs232.py
+
+
+
+
+
+
