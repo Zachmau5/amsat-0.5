@@ -118,16 +118,10 @@ If no GS-232B hardware is connected, check **“Simulate (no hardware)”** duri
 This bypasses serial polling and emulates rotation to verify UI behavior.
 
 
-### Integration (Optional)
-You can launch the wizard from within `main_gs232b.py` using:
-```python
-subprocess.run(["python3", "calibration_wizard.py"])
-```
-This keeps it isolated from the main GUI while providing a convenient pre-flight calibration button.
 
 ---
 
-##  Repository Structure (excerpt)
+##  Repository Structure
 
 ```
 amsat/
