@@ -90,6 +90,51 @@ The main application that:
 
 
 
+##  Antenna Boresight Wizard
+
+A standalone Tkinter-based tool for aligning the Yaesu G-5500DC/GS-232B antenna rotator system before satellite tracking.
+
+### Overview
+
+This tool performs a structured **boresight sequence** independent of the main tracking GUI:
+1. **Point to True North:**
+   Sends `W000 000` and allows the user to verify azimuth alignment.
+2. **Point to Due South:**
+   Sends `W180 000` and allows confirmation of travel range.
+3. **Full 360° Sweep (Speed-Based):**
+   Uses rotation speed commands (`X1`–`X4`) and a continuous clockwise rotation (`R`) to confirm smooth motion and limits.
+4. **Stage / Park:**
+   Lets the user select a fixed azimuth (0–345° in 15° steps) to park the array before exit.
+
+### Usage
+
+Run independently from the repository root:
+```bash
+python3 calibration_wizard.py
+```
+
+### Simulation Mode
+If no GS-232B hardware is connected, check **“Simulate (no hardware)”** during the sweep step.
+This bypasses serial polling and emulates rotation to verify UI behavior.
+
+
+### Integration (Optional)
+You can launch the wizard from within `main_gs232b.py` using:
+```python
+subprocess.run(["python3", "calibration_wizard.py"])
+```
+This keeps it isolated from the main GUI while providing a convenient pre-flight calibration button.
+
+---
+
+##  Repository Structure (excerpt)
+
+```
+amsat/
+├── main_gs232b.py           # Main tracking GUI and
+├── calibration_wizard.py    # Standalone GS-232B
+├── FILL ME IN WHEN I'VE DECIDED TO CLEAN UP MY MESS...
+```
 
 
 
