@@ -88,7 +88,7 @@ The main application that:
   ```bash
   python3 main_gs232.py
 
-
+### Installation Steps
 
 ##  Antenna Boresight Wizard
 
