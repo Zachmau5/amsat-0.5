@@ -358,6 +358,11 @@ def runPredictionTool(checkbox_dict, tle_dict, my_lat, my_lon, tle_path):
 
     track_objs, track_lbls = [], []
 
+    init_az_compass(ax_az)
+    init_el_gauge(ax_el)
+    plt.pause(0.01)  # forces a draw with the right format
+
+
     # ────────────────────────────────────────────────────────────────────
     def animate(frame_idx, sel_dict):
         nonlocal track_objs, track_lbls, serial_lines, serial_text
@@ -377,6 +382,9 @@ def runPredictionTool(checkbox_dict, tle_dict, my_lat, my_lon, tle_path):
         ax_el.cla(); init_el_gauge(ax_el)
 
         now = datetime.utcnow()
+        # Track commanded values for readout
+        az_cmd_local = None
+        el_cmd_local = None
 
         # Which sat are we driving with?
         first_name = next(iter(sel_dict))
@@ -431,6 +439,8 @@ def runPredictionTool(checkbox_dict, tle_dict, my_lat, my_lon, tle_path):
             # clamp to mount limits; *allow up to 450°* for az if supported
             az_cmd = max(0,   min(450, _quantize(smoothed["az"])))
             el_cmd = max(0,   min(180, _quantize(smoothed["el"])))
+            az_cmd_local = az_cmd
+            el_cmd_local = el_cmd
             # Deadband & rate
             if (last_cmd["az"] is not None and last_cmd["el"] is not None and
                 abs(az_cmd - last_cmd["az"]) < AZ_DEADBAND_DEG and
@@ -462,6 +472,30 @@ def runPredictionTool(checkbox_dict, tle_dict, my_lat, my_lon, tle_path):
         ax_el.plot([math.radians(0), theta_el], [0, 1.0], color='yellow', linewidth=3, zorder=5)
         ax_el.plot([theta_el], [1.0], marker='o', markersize=8,
                    markeredgecolor='black', markerfacecolor='yellow', zorder=6)
+                # ---- Commanded readouts (left of gauges) ----
+        # Prefer the just-computed command; fallback to the last one we actually sent.
+        az_disp = az_cmd_local if az_cmd_local is not None else last_cmd.get("az")
+        el_disp = el_cmd_local if el_cmd_local is not None else last_cmd.get("el")
+
+        def _fmt_deg(v):
+            return f"{v:6.1f}°" if (v is not None) else "  --.-°"
+
+        ax_az.text(
+            -1.5, 0.50, f"{_fmt_deg(az_disp)}",
+            transform=ax_az.transAxes, ha="left", va="center",
+            color="white", fontsize=12, family="monospace",
+            path_effects=[pe.withStroke(linewidth=3, foreground="black")]
+        )
+
+        ax_el.text(
+            -1.5, 0.50, f"{_fmt_deg(el_disp)}",
+            transform=ax_el.transAxes, ha="left", va="center",
+            color="white", fontsize=12, family="monospace",
+            path_effects=[pe.withStroke(linewidth=3, foreground="black")]
+        )
+
+
+
         # ---- Maps ----
         ax2.cla(); draw_nearsided_background()
         subpoint = (sat.at(t)).subpoint()
