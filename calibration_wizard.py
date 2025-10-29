@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-GS-232B Calibration Wizard (UI helper for main_gs232b.py)
+GS-232B Calibration Wizard for Antenna Pointing Bringup(UI helper for main_gs232b.py)
 ------------------------------------------------------------------
-Author: Zach (comments written in my own voice)
+Author: Zach Hallett
 
 Purpose
 -------
