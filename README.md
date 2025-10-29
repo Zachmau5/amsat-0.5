@@ -106,6 +106,8 @@ This tool performs a structured **boresight sequence** independent of the main t
 4. **Stage / Park:**
    Lets the user select a fixed azimuth (0–345° in 15° steps) to park the array before exit.
 
+
+---
 ### Usage
 
 Run independently from the repository root:
