@@ -74,6 +74,7 @@ The main application that:
 
 ### Installation Steps
 
+
 1. **Clone the Repository:**
    ```bash
    git clone <repository_url>
@@ -85,12 +86,10 @@ The main application that:
    conda activate amsat
 
 3. **Run Tracking Software:**
-  ```bash
-  python3 main_gs232.py
-
-### Installation Steps
-
-##  Antenna Boresight Wizard
+   ```bash
+   python3 main_gs232b.py
+---
+## Antenna Boresight Wizard
 
 A standalone Tkinter-based tool for aligning the Yaesu G-5500DC/GS-232B antenna rotator system before satellite tracking.
 
