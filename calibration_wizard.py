@@ -71,7 +71,8 @@ def _pick_ui_font():
 # C2 parser (shared helper)
 # =========================
 # Accept typical C2 variants like '+0180+0090', ' 180 090', '0180,090', etc.
-_C2_RE = _C2_RE = re.compile(r'AZ\s*[:=]\s*([+\-]?\d{1,4})\D+EL\s*[:=]\s*([+\-]?\d{1,3})', re.IGNORECASE)
+# _C2_RE = _C2_RE = re.compile(r'AZ\s*[:=]\s*([+\-]?\d{1,4})\D+EL\s*[:=]\s*([+\-]?\d{1,3})', re.IGNORECASE)
+_C2_RE = re.compile(r'AZ\s*[:=]\s*([+\-]?\d{1,4})\D+EL\s*[:=]\s*([+\-]?\d{1,3})', re.IGNORECASE)
 
 
 
@@ -324,16 +325,7 @@ class WizardFrame(tk.Frame):
             s += f" | {extra}"
         self.status_var.set(s)
 
-    def _c2_echo_label(self, parent):
-        """
-        Small, consistent row to display the latest C2 echo after a move.
-        """
-        row = tk.Frame(parent, bg="white")
-        row.pack(fill="x", pady=(12, 0))
-        ttk.Label(row, text="C2 Echo:", style="Body.TLabel").pack(side="left")
-        echo_var = tk.StringVar(value="(none)")
-        ttk.Label(row, textvariable=echo_var, style="Body.TLabel").pack(side="left", padx=8)
-        return echo_var
+
     def _c2_echo_label(self, parent):
         row = tk.Frame(parent, bg="white")
         row.pack(fill="x", pady=(12, 0))
@@ -346,30 +338,72 @@ class WizardFrame(tk.Frame):
         self._start_c2_poll(1000)
         return echo_var
 
+
+    def _pause_sweep(self):
+        if not self._sweep_running:
+            return
+        self._sweep_paused.set()  # tell move_and_wait() to stop and hold
+        try:
+            self.pause_btn.configure(state="disabled")
+            self.resume_btn.configure(state="normal")
+            self.status_var.set("Paused. Rotator stopped (S). Press Resume to continue.")
+        except Exception:
+            pass
+
+    def _resume_sweep(self):
+        if not self._sweep_running:
+            return
+        self._sweep_paused.clear()  # move_and_wait() will re-issue the pending W target
+        try:
+            self.pause_btn.configure(state="normal")
+            self.resume_btn.configure(state="disabled")
+            self.status_var.set("Resuming…")
+        except Exception:
+            pass
+
+    # def _start_c2_poll(self, period_ms: int = 1000):
+    #     """Start/continue a 1 Hz C2 poll that updates self._c2_target_var if set."""
+    #     # Avoid double-scheduling
+    #     if self._c2_poll_id is not None:
+    #         return
+    #
+    #     def _tick():
+    #         # Reschedule first so exceptions don’t kill the loop
+    #         self._c2_poll_id = self.after(period_ms, _tick)
+    #
+    #         # Only poll when we have a label to show it on and we're not in a fast sweep
+    #         if self._c2_target_var is None:
+    #             return
+    #         if self._sweep_running:
+    #             return
+    #         try:
+    #             reply = self.ser_mgr.c2()
+    #             if reply:
+    #                 self._c2_target_var.set(reply)
+    #         except Exception:
+    #             # keep polling; no UI spam
+    #             pass
+    #
+    #     # Kick it off
+    #     self._c2_poll_id = self.after(period_ms, _tick)
+
+
     def _start_c2_poll(self, period_ms: int = 1000):
         """Start/continue a 1 Hz C2 poll that updates self._c2_target_var if set."""
-        # Avoid double-scheduling
         if self._c2_poll_id is not None:
             return
 
         def _tick():
-            # Reschedule first so exceptions don’t kill the loop
             self._c2_poll_id = self.after(period_ms, _tick)
-
-            # Only poll when we have a label to show it on and we're not in a fast sweep
             if self._c2_target_var is None:
-                return
-            if self._sweep_running:
                 return
             try:
                 reply = self.ser_mgr.c2()
                 if reply:
                     self._c2_target_var.set(reply)
             except Exception:
-                # keep polling; no UI spam
                 pass
 
-        # Kick it off
         self._c2_poll_id = self.after(period_ms, _tick)
 
     def _stop_c2_poll(self):
@@ -451,74 +485,161 @@ class WizardFrame(tk.Frame):
 
     def goto_sweep(self):
         """
-        Step 3: Continuous CW rotation at selected speed (X1..X4 -> R).
-        - EL is forced to 0°.
-        - If SIM is disabled, I poll C2 at the chosen interval and integrate
-          the forward CW delta to detect when we’ve hit ~360° total.
-        - If SIM is enabled, I emulate travel based on a simple deg/sec map.
-
-        The "Complete ▶" button becomes enabled once 360° of travel is reached.
+        Step 3: Full Az/El sweep with live C2 echo (1 Hz from your poller).
+        - Azimuth: 0 → 360 → 0
+        - Elevation: 0 → 90 → 0
         """
         self._clear_page()
         self.page = "sweep"
+
         f = tk.Frame(self.container, bg="white")
         f.pack(fill="both", expand=True)
 
-        ttk.Label(f, text="Step 3: Full 360° Sweep (Speed-Based)", style="Heading.TLabel").pack(anchor="w")
+        ttk.Label(f, text="Step 3: Full Az/El Sweep", style="Heading.TLabel").pack(anchor="w")
+
         ttk.Label(
             f,
-            text=("Sets elevation to 0°, selects a horizontal rotation speed (X1..X4), "
-                  "then starts continuous CW rotation (R).\n"
-                  "Use Stop (Pause) to pause with azimuth-only stop (A), Resume to continue, "
-                  "or Stop + Restart to send S and return to Splash.\n\n"
-                  "If you don't have the GS-232B connected, enable 'Simulate (no hardware)'."),
-            style="Body.TLabel", justify="left"
+            text=("This will:\n"
+                "  1) Move to 0°,0°\n"
+                "  2) Sweep AZ: 0 → 360 → 0\n"
+                "  3) Sweep EL: 0 → 90 → 0\n\n"
+                "C2 Echo updates once per second."),
+            style="Body.TLabel",
+            justify="left"
         ).pack(anchor="w", pady=(4, 10))
 
-        # Controls row
-        controls = tk.Frame(f, bg="white"); controls.pack(anchor="w", pady=8)
-
-        ttk.Label(controls, text="Speed:", style="Body.TLabel").grid(row=0, column=0, padx=4, sticky="w")
-        speed_var = tk.StringVar(value="X2")
-        tk.OptionMenu(controls, speed_var, "X1", "X2", "X3", "X4").grid(row=0, column=1, padx=4, sticky="w")
-
-        ttk.Label(controls, text="C2 Poll (ms):", style="Body.TLabel").grid(row=0, column=2, padx=8, sticky="w")
-        poll_var = tk.IntVar(value=200)
-        tk.Spinbox(controls, from_=100, to=1000, increment=50, textvariable=poll_var, width=6)\
-            .grid(row=0, column=3, padx=4, sticky="w")
-
-        # Simulation checkbox (bypass C2, emulate az)
-        self._simulate_var = tk.BooleanVar(value=False)
-        tk.Checkbutton(controls, text="Simulate (no hardware)", variable=self._simulate_var,
-                       bg="white").grid(row=0, column=4, padx=12, sticky="w")
-
+        # Live C2 echo (uses your 1 Hz poller via _c2_echo_label)
+        echo_var = self._c2_echo_label(f)
         # Buttons row
         btns = tk.Frame(f, bg="white"); btns.pack(anchor="w", pady=10)
 
         self.start_btn = tk.Button(
-            btns, text="Start Sweep", width=16,
-            command=lambda: self._start_sweep_speed(speed_var.get(), poll_var.get())
+            btns, text="Start Full Sweep", width=16,
+            command=self._start_full_sweep
         )
         self.start_btn.grid(row=0, column=0, padx=4, pady=4)
 
-        self.pause_btn = tk.Button(btns, text="Stop (Pause)", width=16,
-                                   state="disabled", command=self._pause_sweep_speed)
+        self.pause_btn = tk.Button(
+            btns, text="Pause", width=12, state="disabled",
+            command=self._pause_sweep
+        )
         self.pause_btn.grid(row=0, column=1, padx=4, pady=4)
 
-        self.resume_btn = tk.Button(btns, text="Resume", width=12,
-                                    state="disabled",
-                                    command=lambda: self._resume_sweep_speed(speed_var.get()))
+        self.resume_btn = tk.Button(
+            btns, text="Resume", width=12, state="disabled",
+            command=self._resume_sweep
+        )
         self.resume_btn.grid(row=0, column=2, padx=4, pady=4)
 
-        self.stop_restart_btn = tk.Button(btns, text="Stop + Restart", width=16,
-                                          command=self._stop_and_restart)
+        self.stop_restart_btn = tk.Button(
+            btns, text="Stop + Restart", width=16,
+            command=self._stop_and_restart
+        )
         self.stop_restart_btn.grid(row=0, column=3, padx=4, pady=4)
 
-        self.complete_btn = tk.Button(btns, text="Complete ▶", width=14,
-                                      state="disabled", command=self.goto_stage)
+        self.complete_btn = tk.Button(
+            btns, text="Complete ▶", width=14,
+            state="disabled", command=self.goto_stage
+        )
         self.complete_btn.grid(row=0, column=4, padx=4, pady=4)
 
-        self._serial_status()
+
+    def move_and_wait(self, target_az: int, target_el: int, tol_deg: int = 2, poll_s: float = 0.25, timeout_s: float = 120.0):
+        """
+        Send Wxxx yyy and wait until C2 reports within `tol_deg` of both targets,
+        or until timeout/stop is requested.
+        """
+        # Command move
+        self.ser_mgr.send_move(int(target_az) % 360, int(target_el), echo_c2=False)
+
+        # Wait loop
+        t0 = time.time()
+        while not self._sweep_stop.is_set():
+            # Timeout guard
+            if time.time() - t0 > timeout_s:
+                raise TimeoutError(f"Timeout waiting for W{target_az:03d} {target_el:03d}")
+
+            # Query C2 and check tolerance
+            reply = self.ser_mgr.c2()
+            az, el = parse_c2_az_el(reply)
+            if az is not None and el is not None:
+                if abs((az % 360) - (target_az % 360)) <= tol_deg and abs(el - target_el) <= tol_deg:
+                    return  # reached
+            time.sleep(poll_s)
+
+
+    def _start_full_sweep(self):
+        """
+        Run az sweep (0→360→0) then el sweep (0→90→0).
+        Uses C2 polling to confirm arrival within tolerance.
+        """
+        if self._sweep_running:
+            return
+
+        self._sweep_stop.clear()
+        self._sweep_paused.clear()
+        self._sweep_running = True
+        try:
+            self.complete_btn.configure(state="disabled")
+            self.start_btn.configure(state="disabled")
+            self.pause_btn.configure(state="normal")
+            self.resume_btn.configure(state="disabled")
+        except Exception:
+            pass
+
+
+        def worker():
+            last_phase = ""
+            try:
+                # --- Home first ---
+                last_phase = "Hom­ing to 0°,0°"
+                self._serial_status(last_phase)
+                self.move_and_wait(0, 0)
+
+                # --- AZ: 0 -> 360 ---
+                if self._sweep_stop.is_set(): return
+                last_phase = "AZ 0° → 360°"
+                self._serial_status(last_phase)
+                self.move_and_wait(360, 0)
+
+                # --- AZ: 360 -> 0 ---
+                if self._sweep_stop.is_set(): return
+                last_phase = "AZ 360° → 0°"
+                self._serial_status(last_phase)
+                self.move_and_wait(0, 0)
+
+                # --- EL: 0 -> 90 ---
+                if self._sweep_stop.is_set(): return
+                last_phase = "EL 0° → 90°"
+                self._serial_status(last_phase)
+                self.move_and_wait(0, 90)
+
+                # --- EL: 90 -> 0 ---
+                if self._sweep_stop.is_set(): return
+                last_phase = "EL 90° → 0°"
+                self._serial_status(last_phase)
+                self.move_and_wait(0, 0)
+
+                # Done
+                if not self._sweep_stop.is_set():
+                    self._on_sweep_done()
+
+            except Exception as e:
+                self._on_sweep_error(e)
+            finally:
+                self._sweep_running = False
+                def _restore_buttons():
+                    self.start_btn.configure(state="normal")
+                    self.pause_btn.configure(state="disabled")
+                    self.resume_btn.configure(state="disabled")
+                self.after(0, _restore_buttons)
+
+                self.after(0, lambda: self.start_btn.configure(state="normal"))
+                self._serial_status(extra=f"Last phase: {last_phase}")
+
+        threading.Thread(target=worker, daemon=True).start()
+        self._serial_status(extra="Full sweep running…")
+
 
     def goto_complete(self):
         """End page. Continue returns True to the caller to proceed to selection."""
@@ -671,164 +792,6 @@ class WizardFrame(tk.Frame):
         self._sweep_thread.start()
         self._serial_status(extra="Sweeping...")
 
-    def _start_sweep_speed(self, speed_cmd: str, poll_ms: int):
-        """
-        Preferred sweep:
-          - Apply chosen speed (X1..X4)
-          - Start CW (R)
-          - Integrate CW travel to 360° (C2 polling) OR emulate if SIM is on.
-        Once 360° total is reached, enable the Complete button.
-        """
-        if self._sweep_running:
-            return
-
-        # sanitize inputs
-        speed_cmd = (speed_cmd or "X2").upper()
-        if speed_cmd not in ("X1", "X2", "X3", "X4"):
-            speed_cmd = "X2"
-        poll_ms = max(50, int(poll_ms))
-
-        # basic, tweakable mapping of controller "speed" to deg/sec
-        SPEED_DEG_PER_SEC = {"X1": 2.0, "X2": 6.0, "X3": 12.0, "X4": 24.0}
-
-        simulate = bool(getattr(self, "_simulate_var", tk.BooleanVar(value=False)).get())
-
-        self._sweep_stop.clear()
-        self._sweep_paused.clear()
-        self._sweep_running = True
-        try:
-            self.complete_btn.configure(state="disabled")
-        except Exception:
-            pass
-
-        if self.page == "sweep":
-            self.start_btn.configure(state="disabled")
-            self.pause_btn.configure(state="normal")
-            self.resume_btn.configure(state="disabled")
-
-        def worker():
-            last_cmd = ""
-            try:
-                # 0) Initialize starting az
-                start_reply = None
-                az0 = None
-                if not simulate:
-                    start_reply = self.ser_mgr.c2()
-                    az0, _ = parse_c2_az_el(start_reply)
-                if az0 is None:
-                    az0 = 0.0  # safe fallback
-
-                # 1) Force elevation to 0° at current az
-                try:
-                    if not simulate:
-                        self.ser_mgr.send_move(int(az0) % 360, 0, echo_c2=False)
-                        last_cmd = f"W{int(az0)%360:03d} 000"
-                    else:
-                        last_cmd = f"(sim) W{int(az0)%360:03d} 000"
-                except Exception:
-                    pass
-
-                # 2) Apply horizontal speed (Xn)
-                if not simulate:
-                    try:
-                        self.ser_mgr.write_cmd(speed_cmd, expect_reply=False)
-                        last_cmd = speed_cmd
-                    except Exception:
-                        pass
-                else:
-                    last_cmd = f"(sim){speed_cmd}"
-
-                # 3) Start CW rotation (R)
-                if not simulate:
-                    try:
-                        self.ser_mgr.write_cmd("R", expect_reply=False)
-                        last_cmd = "R"
-                    except Exception:
-                        pass
-                    self._serial_status(extra=f"Rotating CW at {speed_cmd}...")
-                else:
-                    self._serial_status(extra=f"(sim) Rotating CW at {speed_cmd}...")
-
-                # 4) Poll/Emulate movement and integrate CW travel
-                total_travel = 0.0
-                prev_az = float(az0 % 360)
-
-                deg_per_sec = SPEED_DEG_PER_SEC.get(speed_cmd, 6.0)
-                poll_interval_s = poll_ms / 1000.0
-
-                def cw_delta(curr, prev):
-                    # Smallest forward CW delta in [0, 360)
-                    return (curr - prev) % 360.0
-
-                while not self._sweep_stop.is_set():
-                    # Pause handling (send az-stop 'A' once when paused; hold until resumed)
-                    if self._sweep_paused.is_set():
-                        if not simulate:
-                            try:
-                                self.ser_mgr.write_cmd("A", expect_reply=False)
-                                last_cmd = "A"
-                            except Exception:
-                                pass
-                        time.sleep(0.05)
-                        continue
-
-                    if simulate:
-                        # Emulated travel using deg/sec * poll interval
-                        increment = deg_per_sec * poll_interval_s
-                        curr_az = (prev_az + increment) % 360.0
-                        traveled = cw_delta(curr_az, prev_az)
-                        total_travel += traveled
-                        prev_az = curr_az
-
-                        if total_travel >= 360.0:
-                            last_cmd = "(sim) A"
-                            self._on_sweep_done()
-                            break
-                    else:
-                        # Real hardware: poll C2 and integrate CW deltas
-                        try:
-                            reply = self.ser_mgr.c2()
-                            az, _ = parse_c2_az_el(reply)
-                            if az is not None:
-                                az_f = float(az % 360)
-                                dt = cw_delta(az_f, prev_az)
-                                total_travel += dt
-                                prev_az = az_f
-                                if total_travel >= 360.0:
-                                    try:
-                                        self.ser_mgr.write_cmd("A", expect_reply=False)  # az stop
-                                        last_cmd = "A"
-                                    except Exception:
-                                        pass
-                                    self._on_sweep_done()
-                                    break
-                        except Exception:
-                            # Serial hiccup; keep trying
-                            pass
-
-                    # Sleep in small steps so stop/pause stays reactive
-                    slept = 0.0
-                    step = 0.05
-                    target = poll_interval_s
-                    while slept < target and not self._sweep_stop.is_set() and not self._sweep_paused.is_set():
-                        time.sleep(step)
-                        slept += step
-
-            except Exception as e:
-                self._on_sweep_error(e)
-            finally:
-                self._sweep_running = False
-                def _idle_ui():
-                    if self.page == "sweep":
-                        self.start_btn.configure(state="normal")
-                        self.pause_btn.configure(state="disabled")
-                        self.resume_btn.configure(state="disabled")
-                self.after(0, _idle_ui)
-                self._serial_status(extra=f"Last: {last_cmd}")
-
-        self._sweep_thread = threading.Thread(target=worker, daemon=True)
-        self._sweep_thread.start()
-        self._serial_status(extra=f"{'(sim) ' if simulate else ''}Sweep running at {speed_cmd}...")
 
     def _pause_sweep_speed(self):
         """User pressed Stop (Pause): raise pause flag, update UI, and show status."""
