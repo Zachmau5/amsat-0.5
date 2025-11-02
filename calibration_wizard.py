@@ -71,7 +71,9 @@ def _pick_ui_font():
 # C2 parser (shared helper)
 # =========================
 # Accept typical C2 variants like '+0180+0090', ' 180 090', '0180,090', etc.
-_C2_RE = re.compile(r'([+\-]?\d{3,4})[ ,]?([+\-]?\d{3})')
+_C2_RE = _C2_RE = re.compile(r'AZ\s*[:=]\s*([+\-]?\d{1,4})\D+EL\s*[:=]\s*([+\-]?\d{1,3})', re.IGNORECASE)
+
+
 
 def parse_c2_az_el(reply: str):
     """
@@ -178,11 +180,23 @@ class SerialManager:
         self.ser.write(bcmd)
         self.ser.flush()
 
+    # def _readline(self) -> str:
+    #     if not self.ensure_open():
+    #         return ""
+    #     try:
+    #         return self.ser.readline().decode(errors="ignore").strip()
+    #     except Exception:
+    #         return ""
     def _readline(self) -> str:
         if not self.ensure_open():
             return ""
         try:
-            return self.ser.readline().decode(errors="ignore").strip()
+            # Read until CR (0x0D); GS-232B commonly uses CR-only line endings
+            b = self.ser.read_until(b"\r")
+            if not b:
+                return ""
+            # Strip the trailing CR and any spurious whitespace
+            return b.rstrip(b"\r").decode("ascii", errors="ignore").strip()
         except Exception:
             return ""
 
@@ -192,7 +206,9 @@ class SerialManager:
         Send "cmd\\r\\n" to the controller. Optionally read a one-line reply.
         Includes a small retry loop to recover from transient USB hiccups.
         """
-        payload = (cmd_str.rstrip() + "\r\n").encode("ascii", errors="ignore")
+        # payload = (cmd_str.rstrip() + "\r\n").encode("ascii", errors="ignore")
+        payload = (cmd_str.rstrip() + "\r").encode("ascii", errors="ignore")
+
         attempt = 0
         while attempt <= retries:
             try:
@@ -259,6 +275,9 @@ class WizardFrame(tk.Frame):
         self._sweep_running = False
         self._sweep_paused = threading.Event()  # set() means paused
 
+        self._c2_poll_id = None
+        self._c2_target_var = None  # StringVar to update with latest C2 line
+
         # Container for the current page + a bottom status line
         self.container = tk.Frame(self, bg="white")
         self.container.pack(fill="both", expand=True, padx=20, pady=20)
@@ -288,6 +307,7 @@ class WizardFrame(tk.Frame):
         for w in self.container.winfo_children():
             w.destroy()
         self.page = None
+        self._c2_target_var = None
         self.status_var.set("")
 
     def _serial_status(self, extra=""):
@@ -314,6 +334,53 @@ class WizardFrame(tk.Frame):
         echo_var = tk.StringVar(value="(none)")
         ttk.Label(row, textvariable=echo_var, style="Body.TLabel").pack(side="left", padx=8)
         return echo_var
+    def _c2_echo_label(self, parent):
+        row = tk.Frame(parent, bg="white")
+        row.pack(fill="x", pady=(12, 0))
+        ttk.Label(row, text="C2 Echo:", style="Body.TLabel").pack(side="left")
+        echo_var = tk.StringVar(value="(none)")
+        ttk.Label(row, textvariable=echo_var, style="Body.TLabel").pack(side="left", padx=8)
+        # Remember this var so the poller can update it globally
+        self._c2_target_var = echo_var
+        # Ensure the poller is running (1 Hz)
+        self._start_c2_poll(1000)
+        return echo_var
+
+    def _start_c2_poll(self, period_ms: int = 1000):
+        """Start/continue a 1 Hz C2 poll that updates self._c2_target_var if set."""
+        # Avoid double-scheduling
+        if self._c2_poll_id is not None:
+            return
+
+        def _tick():
+            # Reschedule first so exceptions don’t kill the loop
+            self._c2_poll_id = self.after(period_ms, _tick)
+
+            # Only poll when we have a label to show it on and we're not in a fast sweep
+            if self._c2_target_var is None:
+                return
+            if self._sweep_running:
+                return
+            try:
+                reply = self.ser_mgr.c2()
+                if reply:
+                    self._c2_target_var.set(reply)
+            except Exception:
+                # keep polling; no UI spam
+                pass
+
+        # Kick it off
+        self._c2_poll_id = self.after(period_ms, _tick)
+
+    def _stop_c2_poll(self):
+        """Stop the periodic C2 poll (called on teardown or if you ever need to)."""
+        if self._c2_poll_id is not None:
+            try:
+                self.after_cancel(self._c2_poll_id)
+            except Exception:
+                pass
+            self._c2_poll_id = None
+
 
     # ---------- Pages ----------
     def goto_splash(self):
