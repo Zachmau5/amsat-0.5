@@ -133,6 +133,8 @@ amsat/
 
 
 ---
+
+'''mermaid
 flowchart TD
 
   %% States (pages)
@@ -169,4 +171,4 @@ flowchart TD
   COMPLETE -->|"Continue"| EXIT_OK
   COMPLETE -->|"Restart Wizard"| S0
   COMPLETE -->|"Cancel"| EXIT_CANCEL
-
+'''
