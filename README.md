@@ -134,7 +134,7 @@ amsat/
 
 ---
 ```mermaid
-flowchart TD
+flowchart LR
 
   %% States (pages)
   S0["Splash: Calibration Wizard"]
