@@ -12,6 +12,7 @@ from visibility import has_visible_pass_next_hour  # from the separate module
 # from pointing import az_el_from_geodetic  # (kept for compatibility, not used for Skyfield path)
 import serial
 from serial import SerialException, Serial
+from pass_visibility import compute_pass_visibility_for_file
 
 
 
@@ -230,16 +231,16 @@ def runPredictionTool(checkbox_dict, tle_dict, my_lat, my_lon, tle_path):
             vx, vy, vz = geoc.velocity.km_per_s
             speed = (vx*vx + vy*vy + vz*vz) ** 0.5
             utc_now = datetime.utcnow()
-            print("\n--- N2YO Comparison Style ---")
-            print(f"Satellite:     {name}")
-            print(f"UTC Time:      {utc_now.strftime('%H:%M:%S')}")
-            print(f"LATITUDE:      {lat:.2f}°")
-            print(f"LONGITUDE:     {lon:.2f}°")
-            print(f"ALTITUDE [km]: {alt_km:.2f}")
-            print(f"SPEED [km/s]:  {speed:.2f}")
-            if note:
-                print(f"NOTE:          {note}")
-            print("-----------------------------\n")
+            # print("\n--- N2YO Comparison Style ---")
+            # print(f"Satellite:     {name}")
+            # print(f"UTC Time:      {utc_now.strftime('%H:%M:%S')}")
+            # print(f"LATITUDE:      {lat:.2f}°")
+            # print(f"LONGITUDE:     {lon:.2f}°")
+            # print(f"ALTITUDE [km]: {alt_km:.2f}")
+            # print(f"SPEED [km/s]:  {speed:.2f}")
+            # if note:
+            #     print(f"NOTE:          {note}")
+            # print("-----------------------------\n")
         except Exception as e:
             print(f"[DEBUG] N2YO-style debug failed: {e}")
 
@@ -347,8 +348,13 @@ def runPredictionTool(checkbox_dict, tle_dict, my_lat, my_lon, tle_path):
         ax2.set_facecolor('black')
         map2.ax = ax2
         map2.drawmapboundary(fill_color='aqua')
-        map2.fillcontinents(color='coral', lake_color='aqua', zorder=1)
-        map2.drawcoastlines(color='white', linewidth=0.6)
+        map2.drawmapboundary(fill_color='#1a1a1a')  # dark gray ocean
+        map2.fillcontinents(color='#444444', lake_color='#1a1a1a', zorder=1)
+        map2.drawcoastlines(color='white', linewidth=0.4)
+        map2.drawparallels(range(-90, 91, 10), color='gray', dashes=[1, 1], linewidth=0.3)
+        map2.drawmeridians(range(-180, 181, 10), color='gray', dashes=[1, 1], linewidth=0.3)
+        map2.drawstates()
+        map2.drawcountries()
         xq, yq = map2(my_lon, my_lat)
         ax2.plot(xq, yq, 'go', markersize=8, zorder=5)
         ax2.annotate('Me', xy=(xq, yq), xytext=(xq + 5, yq + 5), color='white', zorder=6)
@@ -534,7 +540,8 @@ def runPredictionTool(checkbox_dict, tle_dict, my_lat, my_lon, tle_path):
 import tkinter as tk
 from fetch_tle import fetch_group
 from keplerian_parser import ParseTwoLineElementFile
-def SetupWindow(root, my_lat, my_lon):
+def SetupWindow(root, my_lat, my_lon, tle_cache=None, vis_cache=None):
+
     root.title("Satellite Selector")
     root.configure(bg="white")
 
@@ -629,7 +636,7 @@ def SetupWindow(root, my_lat, my_lon):
 
     # ── Populate and wire buttons ───────────────────────────────────────
     checkbox_dict = {}
-
+    #
     def load_satellites():
         nonlocal checkbox_dict
         for w in list_frame.winfo_children():
@@ -646,31 +653,56 @@ def SetupWindow(root, my_lat, my_lon):
         }
         key = LABEL_TO_KEY.get(group_var.get())
         if key is None:
-            # If you see AttributeError here, import at top: from tkinter import messagebox
             tk.messagebox.showerror("Unknown group", f"{group_var.get()} is not configured.")
             return
 
-        tle_filename = fetch_group(key)
+        # 1) Get TLE filename from cache (no fetching here)
+        if tle_cache is not None and key in tle_cache:
+            tle_filename = tle_cache[key]
+        else:
+            from fetch_tle import fetch_group
+            tle_filename = fetch_group(key)
+
+        # 2) Parse satellite names for GUI
         tle_dict = ParseTwoLineElementFile(tle_filename)
+
+        # 3) Get visibility map from vis_cache, do NOT recompute here
+        if vis_cache is not None and key in vis_cache:
+            visibility_map = vis_cache[key]
+        else:
+            visibility_map = {}
 
         # Grid checkboxes into columns of 20 rows (grows wide -> horizontal scroll)
         row_ctr, col_ctr = 0, 0
         for sat_name in sorted(tle_dict.keys()):
+            vis_summary = visibility_map.get(sat_name)
+            has_pass = bool(vis_summary and vis_summary.passes)
+
+            bg_color = "pale green" if has_pass else "white"
+            active_bg = "pale green" if has_pass else "white"
+
             var = tk.IntVar(value=0)
-            cb = tk.Checkbutton(list_frame, text=sat_name, variable=var,
-                                fg="black", bg="white", anchor="w")
+            cb = tk.Checkbutton(
+                list_frame,
+                text=sat_name,
+                variable=var,
+                fg="black",
+                bg=bg_color,
+                activebackground=active_bg,
+                anchor="w",
+                selectcolor=bg_color,
+            )
             cb.grid(row=row_ctr, column=col_ctr, sticky=tk.W, pady=2, padx=4)
             checkbox_dict[sat_name] = var
+
             row_ctr += 1
             if row_ctr >= 20:
                 row_ctr = 0
                 col_ctr += 1
 
-        # Update scroll area after populating
         list_frame.update_idletasks()
         canvas.configure(scrollregion=canvas.bbox("all"))
 
-        # Wire Run button for this dataset
         run_button.config(command=lambda: runPredictionTool(
             checkbox_dict, tle_dict, my_lat, my_lon, tle_path=tle_filename))
 
@@ -688,93 +720,74 @@ def SetupWindow(root, my_lat, my_lon):
     return checkbox_dict
 
 
-
-# def SetupWindow(root, my_lat, my_lon):
-#     root.title("Satellite Selector")
-#     root.configure(bg="white")
-#
-#     # Frame for group selection
-#     frame0 = tk.Frame(root, bg="white")
-#     frame0.grid(row=0, column=0, padx=10, pady=10, sticky="w")
-#
-#     group_var = tk.StringVar(value="Amateur")
-#     tk.Label(frame0, text="Select Group:", bg="white").pack(side="left")
-#     group_menu = tk.OptionMenu(frame0, group_var, "Amateur", "NOAA", "GOES", "Weather", "CUBESAT", "SATNOGS")
-#     group_menu.pack(side="left")
-#
-#     # Frame for satellite checkboxes
-#     frame1 = tk.Frame(root, bg="white")
-#     frame1.grid(row=1, column=0, padx=10, pady=10)
-#     checkbox_dict = {}
-#
-#     def load_satellites():
-#         nonlocal checkbox_dict
-#         for widget in frame1.winfo_children():
-#             widget.destroy()
-#         checkbox_dict.clear()
-#
-#         group = group_var.get()
-#         LABEL_TO_KEY = {
-#             "Amateur": "Amateur",
-#             "NOAA": "NOAA",
-#             "GOES": "GOES",
-#             "Weather": "Weather",
-#             "CUBESAT": "CUBESAT",
-#             "SATNOGS" : "SATNOGS",
-#         }
-#         key = LABEL_TO_KEY.get(group_var.get())
-#         if key is None:
-#             tk.messagebox.showerror("Unknown group", f"{group_var.get()} is not configured.")
-#             return
-#         tle_filename = fetch_group(key)
-#
-#
-#         # tle_filename = fetch_group(group)  # fetch and save file
-#         tle_dict = ParseTwoLineElementFile(tle_filename)
-#
-#         row_ctr, col_ctr = 0, 0
-#         for sat_name in sorted(tle_dict.keys()):
-#             var = tk.IntVar(value=0)
-#             cb = tk.Checkbutton(frame1, text=sat_name, variable=var,
-#                                 fg="black", bg="white", anchor="w")
-#             cb.grid(row=row_ctr, column=col_ctr, sticky=tk.W, pady=2)
-#             checkbox_dict[sat_name] = var
-#             row_ctr += 1
-#             if row_ctr >= 20:
-#                 row_ctr = 0
-#                 col_ctr += 1
-#
-#         # Update Run button
-#         run_button.config(command=lambda: runPredictionTool(
-#             # checkbox_dict, tle_dict, my_lat, my_lon))
-#             checkbox_dict, tle_dict, my_lat, my_lon, tle_path=tle_filename))
-#
-#
-#     # Frame for buttons
-#     frame2 = tk.Frame(root, bg="white")
-#     frame2.grid(row=2, column=0, padx=10, pady=10)
-#     run_button = tk.Button(frame2, text="Run Prediction")
-#     run_button.grid(row=0, column=0, padx=5, pady=5)
-#     tk.Button(frame2, text="Quit Program", command=root.quit).grid(row=0, column=1, padx=5, pady=5)
-#
-#     # Initial load
-#     load_satellites()
-#     # Reload when group changes
-#     group_var.trace_add("write", lambda *_: load_satellites())
-#
-#     return checkbox_dict
-
-
 if __name__ == "__main__":
-    # We still use your keplerian_parser only to list satellite NAMES for the GUI.
-    # (Raw TLE L1/L2 are loaded separately from the file for Skyfield.)
-    from keplerian_parser import ParseTwoLineElementFile
-    tle_dict = ParseTwoLineElementFile("amateur.tle")
+    from fetch_tle import fetch_group
+    from pass_visibility import compute_pass_visibility_for_file
 
     # Ground station
     my_lat = 41.19502233287143
     my_lon = -111.94128097234622
 
+    GROUP_KEYS = ["Amateur", "NOAA", "GOES", "Weather", "CUBESAT", "SATNOGS"]
+
+    # 1) Prefetch all TLE groups at startup
+    tle_cache = {}
+    for key in GROUP_KEYS:
+        try:
+            tle_path = fetch_group(key)
+            tle_cache[key] = tle_path
+            print(f"[TLE] Prefetched group {key}: {tle_path}")
+        except Exception as e:
+            print(f"[TLE] Failed to fetch group {key}: {e}")
+
+    # 2) Compute visibility ONCE per group at startup
+    vis_cache = {}
+    for key, tle_path in tle_cache.items():
+        try:
+            print(f"[VIS] Computing visibility for group {key} from {tle_path} ...")
+            vis_map = compute_pass_visibility_for_file(
+                tle_path=tle_path,
+                my_lat=my_lat,
+                my_lon=my_lon,
+                window_minutes=30.0,
+                min_el_deg=10.0,
+                dt_sec=30.0,   # 30s step: fast but still accurate enough
+            )
+            vis_cache[key] = vis_map
+            print(f"[VIS] Done computing visibility for group {key}")
+        except Exception as e:
+            print(f"[VIS] Failed to compute visibility for {key}: {e}")
+            vis_cache[key] = {}
+
+    # 3) Launch GUI with both caches
     root = tk.Tk()
-    checkbox_dict = SetupWindow(root, my_lat, my_lon)
+    checkbox_dict = SetupWindow(root, my_lat, my_lon,
+                                tle_cache=tle_cache,
+                                vis_cache=vis_cache)
     root.mainloop()
+
+
+
+# if __name__ == "__main__":
+#     from fetch_tle import fetch_group
+#
+#     # Ground station
+#     my_lat = 41.19502233287143
+#     my_lon = -111.94128097234622
+#
+#     # Pre-fetch all TLE groups at startup
+#     GROUP_KEYS = ["Amateur", "NOAA", "GOES", "Weather", "CUBESAT", "SATNOGS"]
+#     tle_cache = {}
+#
+#     for key in GROUP_KEYS:
+#         try:
+#             tle_path = fetch_group(key)  # returns local TLE filename for this group
+#             tle_cache[key] = tle_path
+#             print(f"[TLE] Prefetched group {key}: {tle_path}")
+#         except Exception as e:
+#             print(f"[TLE] Failed to fetch group {key}: {e}")
+#
+#     root = tk.Tk()
+#     checkbox_dict = SetupWindow(root, my_lat, my_lon, tle_cache=tle_cache)
+#     root.mainloop()
+

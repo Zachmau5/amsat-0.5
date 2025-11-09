@@ -116,7 +116,7 @@ def fetch_and_save_tle(url, filename):
             data = response.read().decode('utf-8')
         with open(filename, 'w') as f:
             f.write(data)
-        print(f"[you're a wizard harry] TLE data saved to {filename}")
+        # print(f"[you're a wizard harry] TLE data saved to {filename}")
     except Exception as e:
         print(f"[oof] Failed to fetch TLE data: {e}")
 

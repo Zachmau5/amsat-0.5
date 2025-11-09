@@ -249,12 +249,3 @@ def n2yo_style_debug(sat, ts, when=None):
     # Velocity vector and speed
     vel = geocentric.velocity.km_per_s  # (vx, vy, vz)
     speed_km_s = (vel[0]**2 + vel[1]**2 + vel[2]**2) ** 0.5
-
-    print("\n--- N2YO Comparison Style ---")
-    print(f"Satellite:     {sat.name}")
-    print(f"UTC Time:      {when.strftime('%H:%M:%S')}")
-    print(f"LATITUDE:      {lat:.2f}°")
-    print(f"LONGITUDE:     {lon:.2f}°")
-    print(f"ALTITUDE [km]: {alt_km:.2f}")
-    print(f"SPEED [km/s]:  {speed_km_s:.2f}")
-    print(f"-----------------------------\n")
