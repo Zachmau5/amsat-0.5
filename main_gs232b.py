@@ -303,7 +303,6 @@ def runPredictionTool(checkbox_dict, tle_dict, my_lat, my_lon, tle_path):
         dirs = ['N','NNE','NE','ENE','E','ESE','SE','SSE',
                 'S','SSW','SW','WSW','W','WNW','NW','NNW']
         return dirs[int((az/22.5)+0.5) % 16]
-
     def init_az_compass(ax):
         ax.set_facecolor('black')
         ax.set_theta_zero_location('N'); ax.set_theta_direction(-1)
@@ -311,23 +310,168 @@ def runPredictionTool(checkbox_dict, tle_dict, my_lat, my_lon, tle_path):
         ax.text(0.5, 1.08, "Azimuth", transform=ax.transAxes, ha='center', va='bottom',
                 color='white', fontsize=12,
                 path_effects=[pe.withStroke(linewidth=3, foreground='black')])
+
+        # Draw faint minor rings (range circles)
         for r in (0.33, 0.66, 1.0):
             ax.plot([0, 2*math.pi], [r, r], color='white', alpha=0.15, linewidth=1)
+
+        # Minor gridlines every 30°
         for ang in range(0, 360, 30):
             t = math.radians(ang)
             ax.plot([t, t], [0.0, 1.0], color='white', alpha=0.15, linewidth=1)
-        for ang, lab in [(0, 'N'), (90, 'E'), (180, 'S'), (270, 'W')]:
-            ax.text(math.radians(ang), 0.7, lab, color='white', ha='center', va='bottom', fontsize=10)
 
+        # Major lines at cardinal directions (0°, 90°, 180°, 270°)
+        for ang in [0, 90, 180, 270]:
+            t = math.radians(ang)
+            ax.plot([t, t], [0.0, 1.0], color='yellow', alpha=0.8, linewidth=2)
+
+        # Cardinal direction labels
+        for ang, lab in [(0, 'N'), (90, 'E'), (180, 'S'), (270, 'W')]:
+            ax.text(math.radians(ang), 0.75, lab, color='white',
+                    ha='center', va='bottom', fontsize=11,
+                    path_effects=[pe.withStroke(linewidth=3, foreground='black')])
+
+    # def init_az_compass(ax):
+    #     ax.set_facecolor("#101010")
+    #     ax.set_theta_zero_location('N')   # 0° at North
+    #     ax.set_theta_direction(-1)        # clockwise
+    #     ax.set_rlim(0, 1.0)
+    #     ax.set_rticks([])
+    #     ax.set_xticks([])
+    #
+    #     # Hide default polar spine
+    #     ax.spines["polar"].set_visible(False)
+    #
+    #     # Outer ring
+    #     ax.plot([0, 2 * math.pi], [1.0, 1.0],
+    #             linewidth=1.2, color="#888888", alpha=0.9)
+    #
+    #     # Cardinal labels
+    #     for ang, lab in [(0, 'N'), (90, 'E'), (180, 'S'), (270, 'W')]:
+    #         ax.text(
+    #             math.radians(ang),
+    #             1.08,
+    #             lab,
+    #             color="white",
+    #             ha="center",
+    #             va="center",
+    #             fontsize=11,
+    #             path_effects=[pe.withStroke(linewidth=3, foreground="black")]
+    #         )
+    #
+    #     # Title
+    #     ax.text(
+    #         0.5, 1.18, "Azimuth",
+    #         transform=ax.transAxes,
+    #         ha="center",
+    #         va="bottom",
+    #         color="white",
+    #         fontsize=12,
+    #         path_effects=[pe.withStroke(linewidth=3, foreground="black")]
+    #     )
+    #
     def init_el_gauge(ax):
         ax.set_facecolor('black')
         ax.set_theta_zero_location('W'); ax.set_theta_direction(-1)
         ax.set_thetamin(0); ax.set_thetamax(90)
         ax.set_rlim(0, 1.0); ax.set_rticks([]); ax.set_xticklabels([])
-        ax_el.text(0.5, -0.18, "Elevation", transform=ax_el.transAxes, ha='center', va='top',
-                   color='white', fontsize=12,
-                   path_effects=[pe.withStroke(linewidth=3, foreground='black')])
-        ax.bar(math.radians(5), 1.0, width=math.radians(10), bottom=0.0, alpha=0.14, color='red', edgecolor=None)
+
+        # Title
+        ax_el.text(0.5, -0.18, "Elevation", transform=ax_el.transAxes,
+                ha='center', va='top', color='white', fontsize=12,
+                path_effects=[pe.withStroke(linewidth=3, foreground='black')])
+
+        # Major gridlines at 0°, 30°, 60°, 90°
+        for ang in [0, 30, 60, 90]:
+            t = math.radians(ang)
+            ax.plot([t, t], [0.0, 1.0], color='yellow' if ang in [0,90] else 'white',
+                    alpha=0.8 if ang in [0,90] else 0.3, linewidth=2 if ang in [0,90] else 1)
+            ax.text(t, 1.05, f"{ang}°", color='white', fontsize=9, ha='center', va='bottom')
+
+        # Concentric rings (depth cues)
+        for r in (0.33, 0.66, 1.0):
+            ax.plot([math.radians(0), math.radians(90)], [r, r],
+                    color='white', alpha=0.15, linewidth=1)
+
+    # def init_el_gauge(ax):
+    #     """Clean elevation gauge: 0° at horizon, 90° at zenith."""
+    #     ax.set_facecolor("#101010")
+    #     ax.set_theta_zero_location('E')   # 0° at right (horizon)
+    #     ax.set_theta_direction(1)         # counter-clockwise
+    #     ax.set_thetamin(0)
+    #     ax.set_thetamax(90)
+    #     ax.set_rlim(0, 1.0)
+    #     ax.set_rticks([])
+    #     ax.set_xticks([])
+    #
+    #     ax.spines["polar"].set_visible(False)
+    #
+    #     # Arc for 0–90°
+    #     ax.plot(
+    #         [math.radians(a) for a in range(0, 91, 3)],
+    #         [1.0] * 31,
+    #         linewidth=1.2,
+    #         color="#888888",
+    #         alpha=0.9,
+    #     )
+    #
+    #     # Horizon / Zenith labels
+    #     ax.text(
+    #         math.radians(0),
+    #         1.08,
+    #         "0°",
+    #         color="white",
+    #         ha="center",
+    #         va="center",
+    #         fontsize=9,
+    #         path_effects=[pe.withStroke(linewidth=3, foreground="black")]
+    #     )
+    #     ax.text(
+    #         math.radians(90),
+    #         1.08,
+    #         "90°",
+    #         color="white",
+    #         ha="center",
+    #         va="center",
+    #         fontsize=9,
+    #         path_effects=[pe.withStroke(linewidth=3, foreground="black")]
+    #     )
+    #
+    #     # Title
+    #     ax.text(
+    #         0.5, -0.18, "Elevation",
+    #         transform=ax.transAxes,
+    #         ha="center",
+    #         va="top",
+    #         color="white",
+    #         fontsize=12,
+    #         path_effects=[pe.withStroke(linewidth=3, foreground="black")]
+    #     )
+
+    # def init_az_compass(ax):
+    #     ax.set_facecolor('black')
+    #     ax.set_theta_zero_location('N'); ax.set_theta_direction(-1)
+    #     ax.set_rlim(0, 1.0); ax.set_rticks([]); ax.set_xticklabels([])
+    #     ax.text(0.5, 1.08, "Azimuth", transform=ax.transAxes, ha='center', va='bottom',
+    #             color='white', fontsize=12,
+    #             path_effects=[pe.withStroke(linewidth=3, foreground='black')])
+    #     for r in (0.33, 0.66, 1.0):
+    #         ax.plot([0, 2*math.pi], [r, r], color='white', alpha=0.15, linewidth=1)
+    #     for ang in range(0, 360, 30):
+    #         t = math.radians(ang)
+    #         ax.plot([t, t], [0.0, 1.0], color='white', alpha=0.15, linewidth=1)
+    #     for ang, lab in [(0, 'N'), (90, 'E'), (180, 'S'), (270, 'W')]:
+    #         ax.text(math.radians(ang), 0.7, lab, color='white', ha='center', va='bottom', fontsize=10)
+    #
+    # def init_el_gauge(ax):
+    #     ax.set_facecolor('black')
+    #     ax.set_theta_zero_location('W'); ax.set_theta_direction(-1)
+    #     ax.set_thetamin(0); ax.set_thetamax(90)
+    #     ax.set_rlim(0, 1.0); ax.set_rticks([]); ax.set_xticklabels([])
+    #     ax_el.text(0.5, -0.18, "Elevation", transform=ax_el.transAxes, ha='center', va='top',
+    #                color='white', fontsize=12,
+    #                path_effects=[pe.withStroke(linewidth=3, foreground='black')])
+    #     ax.bar(math.radians(5), 1.0, width=math.radians(10), bottom=0.0, alpha=0.14, color='red', edgecolor=None)
 
     # Maps
     map1 = Basemap(projection='mill', llcrnrlat=-90, urcrnrlat=90,
@@ -461,7 +605,9 @@ def runPredictionTool(checkbox_dict, tle_dict, my_lat, my_lon, tle_path):
                 # Print N2YO-style block only when we actually send to motors
                 n2yo_style_debug(first_name, sat, t, note=f"Sent: {sent_cmd}")
                 if reply:
-                    cmd_echo = f"{sent_cmd} | {reply}"
+                    # cmd_echo = f"{sent_cmd} | f"{echo:"} "{reply}"
+                    cmd_echo = f"{sent_cmd} | echo: {reply}"
+
                 else:
                     cmd_echo = f"{sent_cmd} | (no echo)"
 
@@ -469,36 +615,150 @@ def runPredictionTool(checkbox_dict, tle_dict, my_lat, my_lon, tle_path):
         serial_text.set_text("\n".join(serial_lines))
 
         # ---- Gauges ----
-        theta = math.radians(az_deg % 360.0)
-        ax_az.plot([0, theta], [0, 1.0], color='yellow', linewidth=3, zorder=5)
-        ax_az.plot([theta], [1.0], marker='o', markersize=8,
-                   markeredgecolor='black', markerfacecolor='yellow', zorder=6)
-        el_disp = max(0.0, min(90.0, el_deg))
-        theta_el = math.radians(el_disp)
-        ax_el.plot([math.radians(0), theta_el], [0, 1.0], color='yellow', linewidth=3, zorder=5)
-        ax_el.plot([theta_el], [1.0], marker='o', markersize=8,
-                   markeredgecolor='black', markerfacecolor='yellow', zorder=6)
-                # ---- Commanded readouts (left of gauges) ----
-        # Prefer the just-computed command; fallback to the last one we actually sent.
+        # theta = math.radians(az_deg % 360.0)
+        # ax_az.plot([0, theta], [0, 1.0], color='yellow', linewidth=3, zorder=5)
+        # ax_az.plot([theta], [1.0], marker='o', markersize=8,
+        #            markeredgecolor='black', markerfacecolor='yellow', zorder=6)
+        # el_disp = max(0.0, min(90.0, el_deg))
+        # theta_el = math.radians(el_disp)
+        # ax_el.plot([math.radians(0), theta_el], [0, 1.0], color='yellow', linewidth=3, zorder=5)
+        # ax_el.plot([theta_el], [1.0], marker='o', markersize=8,
+        #            markeredgecolor='black', markerfacecolor='yellow', zorder=6)
+        #         # ---- Commanded readouts (left of gauges) ----
+        # # Prefer the just-computed command; fallback to the last one we actually sent.
+        # az_disp = az_cmd_local if az_cmd_local is not None else last_cmd.get("az")
+        # el_disp = el_cmd_local if el_cmd_local is not None else last_cmd.get("el")
+        #
+        # def _fmt_deg(v):
+        #     return f"{v:6.1f}°" if (v is not None) else "  --.-°"
+        #
+        # ax_az.text(
+        #     -1.5, 0.50, f"{_fmt_deg(az_disp)}",
+        #     transform=ax_az.transAxes, ha="left", va="center",
+        #     color="white", fontsize=12, family="monospace",
+        #     path_effects=[pe.withStroke(linewidth=3, foreground="black")]
+        # )
+        #
+        # ax_el.text(
+        #     -1.5, 0.50, f"{_fmt_deg(el_disp)}",
+        #     transform=ax_el.transAxes, ha="left", va="center",
+        #     color="white", fontsize=12, family="monospace",
+        #     path_effects=[pe.withStroke(linewidth=3, foreground="black")]
+        # )
+        # ---- Gauges ----
+        # Redraw cleaned backgrounds
+        ax_az.cla()
+        init_az_compass(ax_az)
+        ax_el.cla()
+        init_el_gauge(ax_el)
+
+        # Actual pointing angles (Skyfield topocentric)
+        theta_az = math.radians(az_deg % 360.0)
+        el_disp_raw = max(0.0, min(90.0, el_deg))
+        theta_el = math.radians(el_disp_raw)
+
+        # Azimuth needle
+        ax_az.plot(
+            [theta_az, theta_az],
+            [0.0, 1.0],
+            color="#A12731",  # soft yellow/gold
+            linewidth=3,
+            zorder=5
+        )
+        ax_az.plot(
+            [theta_az],
+            [1.0],
+            marker="o",
+            markersize=8,
+            markeredgecolor="black",
+            markerfacecolor="#A12731",
+            zorder=6
+        )
+
+        # Elevation needle
+        ax_el.plot(
+            [0.0, theta_el],
+            [0.0, 1.0],
+            color="#A12731",  # soft yellow
+            linewidth=3,
+            zorder=5
+        )
+        ax_el.plot(
+            [theta_el],
+            [1.0],
+            marker="o",
+            markersize=8,
+            markeredgecolor="black",
+            markerfacecolor="#A12731",
+            zorder=6
+        )
+        # ---- Commanded readouts (digital, to the left of each gauge) ----
         az_disp = az_cmd_local if az_cmd_local is not None else last_cmd.get("az")
-        el_disp = el_cmd_local if el_cmd_local is not None else last_cmd.get("el")
+        el_disp_cmd = el_cmd_local if el_cmd_local is not None else last_cmd.get("el")
 
         def _fmt_deg(v):
-            return f"{v:6.1f}°" if (v is not None) else "  --.-°"
+            return f"{v:6.1f}°" if (v is not None) else "--.-°"
 
+        # Azimuth: numeric + compass label (left of az gauge)
+        az_compass = az_to_compass(az_disp) if az_disp is not None else ""
         ax_az.text(
-            -1.5, 0.50, f"{_fmt_deg(az_disp)}",
-            transform=ax_az.transAxes, ha="left", va="center",
-            color="white", fontsize=12, family="monospace",
+            -0.25, 0.50,                         # x < 0 pushes it to the left of the polar plot
+            f"{_fmt_deg(az_disp)}\n{az_compass}",
+            transform=ax_az.transAxes,
+            ha="right",
+            va="center",
+            color="white",
+            fontsize=12,
+            family="monospace",
             path_effects=[pe.withStroke(linewidth=3, foreground="black")]
         )
 
+        # Elevation: numeric only (left of el gauge)
         ax_el.text(
-            -1.5, 0.50, f"{_fmt_deg(el_disp)}",
-            transform=ax_el.transAxes, ha="left", va="center",
-            color="white", fontsize=12, family="monospace",
+            -0.25, 0.50,
+            _fmt_deg(el_disp_cmd),
+            transform=ax_el.transAxes,
+            ha="right",
+            va="center",
+            color="white",
+            fontsize=12,
+            family="monospace",
             path_effects=[pe.withStroke(linewidth=3, foreground="black")]
         )
+
+        # # ---- Commanded readouts (digital, centered in gauges) ----
+        # az_disp = az_cmd_local if az_cmd_local is not None else last_cmd.get("az")
+        # el_disp_cmd = el_cmd_local if el_cmd_local is not None else last_cmd.get("el")
+        #
+        # def _fmt_deg(v):
+        #     return f"{v:6.1f}°" if (v is not None) else "--.-°"
+        #
+        # # Azimuth: numeric + compass label
+        # az_compass = az_to_compass(az_disp) if az_disp is not None else ""
+        # ax_az.text(
+        #     0.5, 0.5,
+        #     f"{_fmt_deg(az_disp)}\n{az_compass}",
+        #     transform=ax_az.transAxes,
+        #     ha="center",
+        #     va="center",
+        #     color="white",
+        #     fontsize=12,
+        #     family="monospace",
+        #     path_effects=[pe.withStroke(linewidth=3, foreground="black")]
+        # )
+        #
+        # # Elevation: numeric only
+        # ax_el.text(
+        #     0.5, 0.5,
+        #     _fmt_deg(el_disp_cmd),
+        #     transform=ax_el.transAxes,
+        #     ha="center",
+        #     va="center",
+        #     color="white",
+        #     fontsize=12,
+        #     family="monospace",
+        #     path_effects=[pe.withStroke(linewidth=3, foreground="black")]
+        # )
 
 
 
@@ -790,4 +1050,3 @@ if __name__ == "__main__":
 #     root = tk.Tk()
 #     checkbox_dict = SetupWindow(root, my_lat, my_lon, tle_cache=tle_cache)
 #     root.mainloop()
-

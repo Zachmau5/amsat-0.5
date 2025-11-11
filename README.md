@@ -134,6 +134,39 @@ amsat/
 
 ---
 ```mermaid
+---
+config:
+  layout: dagre
+  theme: neutral
+  look: classic
+---
+flowchart TD
+    A["Program start"] --> B["Set ground station location"]
+    B --> C["Prefetch TLE groups into cache"]
+    C --> D["Compute visibility cache"]
+    D --> E["Create GUI window and build selector"]
+    E --> F["GUI event loop"]
+    F --> I["User clicks Run Prediction"] & L["User clicks Quit"]
+    I --> N{"Any satellites selected?"}
+    N -- No --> N
+    N -- Yes --> J["Start prediction, serial, Skyfield and open tracking window"]
+    J --> K["Animation frame compute pointing and update"]
+    K --> P{"Satellite above horizon?"} & V["User closes tracking window"]
+    P -- No --> R["Hold rotator do not move"]
+    P -- Yes --> Q{"Change exceeds deadband and interval?"}
+    R --> S["Update gauges maps and console"]
+    Q -- No --> T["Skip move only update status"]
+    Q -- Yes --> U["Send move command and get echo"]
+    T --> S
+    U --> S
+    S --> K
+    V --> F
+    L --> M["Program exit"]
+```
+
+
+---
+```mermaid
 flowchart LR
 
   %% States (pages)
