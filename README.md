@@ -105,7 +105,45 @@ This tool performs a structured **boresight sequence** independent of the main t
 4. **Stage / Park:**
    Lets the user select a fixed azimuth (0–345° in 15° steps) to park the array before exit.
 
+---
+```mermaid
+flowchart LR
 
+  %% States (pages)
+  S0["Splash: Calibration Wizard"]
+  N0["Step 1: TRUE NORTH (W000 000)"]
+  S1["Step 2: DUE SOUTH (W180 000)"]
+  STAGE["Stage: Choose park azimuth (Wxxx 000, EL=0)"]
+  COMPLETE["Complete: Calibration Complete"]
+
+  EXIT_OK["Exit wizard (ok = True)"]
+  EXIT_CANCEL["Exit wizard (ok = False)"]
+
+  %% Splash
+  S0 -->|Start| N0
+  S0 -->|Cancel| EXIT_CANCEL
+
+  %% North
+  N0 -->|"Move (W000 000)"| N0
+  N0 -->|"Next ▶"| S1
+  N0 -->|"Stop + Restart"| S0
+
+  %% South
+  S1 -->|"Move (W180 000)"| S1
+  S1 -->|"Next ▶"| STAGE
+  S1 -->|"Stop + Restart"| S0
+
+  %% Stage
+  STAGE -->|"Move (Wxxx 000)"| STAGE
+  STAGE -->|"Back"| S1
+  STAGE -->|"Stop + Restart"| S0
+  STAGE -->|"Finish ▶"| COMPLETE
+
+  %% Complete
+  COMPLETE -->|"Continue"| EXIT_OK
+  COMPLETE -->|"Restart Wizard"| S0
+  COMPLETE -->|"Cancel"| EXIT_CANCEL
+```
 ---
 ### Usage
 
@@ -165,42 +203,4 @@ flowchart TD
 ```
 
 
----
-```mermaid
-flowchart LR
 
-  %% States (pages)
-  S0["Splash: Calibration Wizard"]
-  N0["Step 1: TRUE NORTH (W000 000)"]
-  S1["Step 2: DUE SOUTH (W180 000)"]
-  STAGE["Stage: Choose park azimuth (Wxxx 000, EL=0)"]
-  COMPLETE["Complete: Calibration Complete"]
-
-  EXIT_OK["Exit wizard (ok = True)"]
-  EXIT_CANCEL["Exit wizard (ok = False)"]
-
-  %% Splash
-  S0 -->|Start| N0
-  S0 -->|Cancel| EXIT_CANCEL
-
-  %% North
-  N0 -->|"Move (W000 000)"| N0
-  N0 -->|"Next ▶"| S1
-  N0 -->|"Stop + Restart"| S0
-
-  %% South
-  S1 -->|"Move (W180 000)"| S1
-  S1 -->|"Next ▶"| STAGE
-  S1 -->|"Stop + Restart"| S0
-
-  %% Stage
-  STAGE -->|"Move (Wxxx 000)"| STAGE
-  STAGE -->|"Back"| S1
-  STAGE -->|"Stop + Restart"| S0
-  STAGE -->|"Finish ▶"| COMPLETE
-
-  %% Complete
-  COMPLETE -->|"Continue"| EXIT_OK
-  COMPLETE -->|"Restart Wizard"| S0
-  COMPLETE -->|"Cancel"| EXIT_CANCEL
-```
