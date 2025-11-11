@@ -94,18 +94,6 @@ The main application that:
 A standalone Tkinter-based tool for aligning the Yaesu G-5500DC/GS-232B antenna rotator system before satellite tracking.
 
 ### Overview
-
-This tool performs a structured **boresight sequence** independent of the main tracking GUI:
-1. **Point to True North:**
-   Sends `W000 000` and allows the user to verify azimuth alignment.
-2. **Point to Due South:**
-   Sends `W180 000` and allows confirmation of travel range.
-3. **Full 360° Sweep (Speed-Based):**
-   Uses rotation speed commands (`X1`–`X4`) and a continuous clockwise rotation (`R`) to confirm smooth motion and limits.
-4. **Stage / Park:**
-   Lets the user select a fixed azimuth (0–345° in 15° steps) to park the array before exit.
-
----
 ```mermaid
 flowchart LR
 
@@ -144,6 +132,19 @@ flowchart LR
   COMPLETE -->|"Restart Wizard"| S0
   COMPLETE -->|"Cancel"| EXIT_CANCEL
 ```
+---
+This tool performs a structured **boresight sequence** independent of the main tracking GUI:
+1. **Point to True North:**
+   Sends `W000 000` and allows the user to verify azimuth alignment.
+2. **Point to Due South:**
+   Sends `W180 000` and allows confirmation of travel range.
+3. **Full 360° Sweep (Speed-Based):**
+   Uses rotation speed commands (`X1`–`X4`) and a continuous clockwise rotation (`R`) to confirm smooth motion and limits.
+4. **Stage / Park:**
+   Lets the user select a fixed azimuth (0–345° in 15° steps) to park the array before exit.
+
+
+
 ---
 ### Usage
 
