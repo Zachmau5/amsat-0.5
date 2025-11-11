@@ -1,7 +1,7 @@
 # amsat
 ## Features
 <img width="800" height="470" alt="image" src="https://github.com/user-attachments/assets/2634a2b6-add2-4bc3-a064-322594a1592e" />
-<img width="800" height="470" alt="Tracking GUI" src="https://raw.githubusercontent.com/yourusername/amsat/main/assets/capture.png" />
+<img width="800" height="470" alt="Tracking GUI" src="https://raw.githubusercontent.com/Zachmau5/amsat-1.0/refs/heads/main/assets/capture.png" />
 
 <!--- **TLE Parsing:** Reads TLE files and extracts orbital parameters (Epoch, Inclination, RAAN, Eccentricity, Argument of Perigee, Mean Anomaly, Mean Motion) for each satellite.
 - **Keplerian Propagation:** Uses Kepler's equations to propagate the satellite's orbit. This includes:
