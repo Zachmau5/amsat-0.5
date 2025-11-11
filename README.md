@@ -92,6 +92,7 @@ The main application that:
 ## Antenna Boresight Wizard
 
 A standalone Tkinter-based tool for aligning the Yaesu G-5500DC/GS-232B antenna rotator system before satellite tracking.
+#### Note: Checks if hardware is present as well
 
 ### Overview
 ```mermaid
@@ -152,12 +153,6 @@ Run independently from the repository root:
 ```bash
 python3 calibration_wizard.py
 ```
-
-### Simulation Mode
-If no GS-232B hardware is connected, check **“Simulate (no hardware)”** during the sweep step.
-This bypasses serial polling and emulates rotation to verify UI behavior.
-
-
 
 ---
 
