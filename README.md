@@ -73,6 +73,7 @@ The main application that:
 - (Optional) skyfield
 
 ### Installation Steps
+> **Note:** Run all setup commands from the repository root.
 
 
 1. **Clone the Repository:**
