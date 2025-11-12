@@ -91,9 +91,10 @@ This tool performs a structured **boresight sequence** independent of the main t
 
 ```
 amsat/
-├── main_gs232b.py           # Main tracking GUI and
-├── calibration_wizard.py    # Standalone GS-232B
-├── FILL ME IN WHEN I'VE DECIDED TO CLEAN UP MY MESS...
+├── archive
+├── assets
+├── src
+├──── tle
 ```
 
 
