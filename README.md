@@ -25,7 +25,8 @@
 
 A standalone Tkinter-based tool for aligning the Yaesu G-5500DC/GS-232B antenna rotator system before satellite tracking.
 #### Note: Checks if hardware is present as well
-
+   ```bash
+   python3 src/calibration_wizard.py
 ### Overview
 ```mermaid
 flowchart LR
