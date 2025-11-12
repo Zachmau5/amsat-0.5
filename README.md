@@ -27,7 +27,6 @@ A standalone Tkinter-based tool for aligning the Yaesu G-5500DC/GS-232B antenna 
 #### Note: Checks if hardware is present as well
 ### Usage
 
-Run independently from the repository root:
 ```bash
 python3 calibration_wizard.py
 ```
