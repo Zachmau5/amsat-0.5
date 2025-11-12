@@ -82,7 +82,7 @@ The main application that:
 
 2. **Create and Activate Virtual Environment:**
    ```bash
-   conda env create -f amsat.yml
+   conda env create -f assets/amsat.yml
    conda activate amsat
 
 3. **Run Tracking Software:**
