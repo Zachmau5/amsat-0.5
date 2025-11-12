@@ -13,8 +13,9 @@ from visibility import has_visible_pass_next_hour  # from the separate module
 import serial
 from serial import SerialException, Serial
 from pass_visibility import compute_pass_visibility_for_file
+from zoneinfo import ZoneInfo
 
-
+LOCAL_TZ = ZoneInfo("America/Denver")
 
 # 1. Kill anything else holding the port
 # lsof /dev/ttyUSB0
@@ -800,6 +801,32 @@ def runPredictionTool(checkbox_dict, tle_dict, my_lat, my_lon, tle_path):
 import tkinter as tk
 from fetch_tle import fetch_group
 from keplerian_parser import ParseTwoLineElementFile
+
+def _format_next_peak(pass_list):
+    """Return 'HH:MM @ XX°' for the next pass peak, or None."""
+    if not pass_list:
+        return None
+    def _peak_time(p):
+        return getattr(p, "peak_utc", getattr(p, "t_peak", getattr(p, "peak", None)))
+    def _max_el(p):
+        return getattr(p, "max_el_deg", getattr(p, "max_el", None))
+    candidates = [p for p in pass_list if _peak_time(p) is not None]
+    if not candidates:
+        return None
+    p = min(candidates, key=lambda x: _peak_time(x))
+    t_utc = _peak_time(p)
+    el = _max_el(p)
+    try:
+        t_local = t_utc.astimezone(LOCAL_TZ)
+        t_str = t_local.strftime("%H:%M")
+        if el is not None:
+            return f"{t_str} @ {round(float(el))}°"
+    except Exception:
+        pass
+    return None
+
+
+
 def SetupWindow(root, my_lat, my_lon, tle_cache=None, vis_cache=None):
 
     root.title("Satellite Selector")
@@ -936,21 +963,30 @@ def SetupWindow(root, my_lat, my_lon, tle_cache=None, vis_cache=None):
         row_ctr, col_ctr = 0, 0
         for sat_name in sorted(tle_dict.keys()):
             vis_summary = visibility_map.get(sat_name)
-            has_pass = bool(vis_summary and vis_summary.passes)
+            has_pass = bool(vis_summary and getattr(vis_summary, "passes", None))
 
-            bg_color = "pale green" if has_pass else "white"
-            active_bg = "pale green" if has_pass else "white"
+            # Build label text
+            label_text = sat_name
+            if has_pass:
+                peak_str = _format_next_peak(vis_summary.passes)
+                if peak_str:
+                    label_text = f"{sat_name}  [{peak_str}]"
+
+            bg_color   = "pale green" if has_pass else "white"
+            active_bg  = bg_color
 
             var = tk.IntVar(value=0)
             cb = tk.Checkbutton(
                 list_frame,
-                text=sat_name,
+                text=label_text,
                 variable=var,
                 fg="black",
                 bg=bg_color,
                 activebackground=active_bg,
                 anchor="w",
                 selectcolor=bg_color,
+                font=("Courier New", 10),  # monospace keeps the time/elevation neat
+                padx=2
             )
             cb.grid(row=row_ctr, column=col_ctr, sticky=tk.W, pady=2, padx=4)
             checkbox_dict[sat_name] = var
@@ -959,6 +995,32 @@ def SetupWindow(root, my_lat, my_lon, tle_cache=None, vis_cache=None):
             if row_ctr >= 20:
                 row_ctr = 0
                 col_ctr += 1
+
+        # for sat_name in sorted(tle_dict.keys()):
+        #     vis_summary = visibility_map.get(sat_name)
+        #     has_pass = bool(vis_summary and vis_summary.passes)
+        #
+        #     bg_color = "pale green" if has_pass else "white"
+        #     active_bg = "pale green" if has_pass else "white"
+        #
+        #     var = tk.IntVar(value=0)
+        #     cb = tk.Checkbutton(
+        #         list_frame,
+        #         text=sat_name,
+        #         variable=var,
+        #         fg="black",
+        #         bg=bg_color,
+        #         activebackground=active_bg,
+        #         anchor="w",
+        #         selectcolor=bg_color,
+        #     )
+        #     cb.grid(row=row_ctr, column=col_ctr, sticky=tk.W, pady=2, padx=4)
+        #     checkbox_dict[sat_name] = var
+        #
+        #     row_ctr += 1
+        #     if row_ctr >= 20:
+        #         row_ctr = 0
+        #         col_ctr += 1
 
         list_frame.update_idletasks()
         canvas.configure(scrollregion=canvas.bbox("all"))

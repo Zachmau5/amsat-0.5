@@ -91,10 +91,21 @@ This tool performs a structured **boresight sequence** independent of the main t
 
 ```
 amsat/
-├── archive
-├── assets
-├── src
-├──── tle
+├── archive/
+├── assets/
+├── src/
+│ ├── tle/
+│ ├── calibration_wizard.py
+│ ├── constants.py
+│ ├── ccoordinate_conversion.py
+│ ├── fetch_tle.py
+│ ├── keplerian_parser.py
+│ ├── main_gs232b.py
+│ ├── pass_visibility.py
+│ ├── skyfield_predictor.py
+│ ├── test_pass_visibility.py
+│ └── visibility.py
+└── README.md
 ```
 
 
