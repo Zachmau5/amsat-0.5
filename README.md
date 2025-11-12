@@ -62,15 +62,7 @@ The main application that:
 - Sets up animated maps (global view and near-sided perspective) to visualize satellite ground tracks and footprints.
   ## Installation-->
 
-### Requirements
-- Python 3.7+
-- numpy
-- scipy
-- matplotlib
-- Basemap (e.g., installed via conda from conda-forge)
-- tkinter (bundled with Python)
-- pytz
-- (Optional) skyfield
+
 
 ### Installation Steps
 > **Note:** Run all setup commands from the repository root.
