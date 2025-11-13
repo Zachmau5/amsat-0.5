@@ -107,7 +107,7 @@ flowchart LR
   COMPLETE -->|"Restart Wizard"| S0
   COMPLETE -->|"Cancel"| EXIT_CANCEL
 ```
----
+
 This tool performs a structured **boresight sequence** independent of the main tracking GUI:
 1. **Point to True North:**
    Sends `W000 000` and allows the user to verify azimuth alignment.
