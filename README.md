@@ -113,7 +113,7 @@ This tool performs a structured **boresight sequence** independent of the main t
    Sends `W000 000` and allows the user to verify azimuth alignment.
 2. **Point to Due South:**
    Sends `W180 000` and allows confirmation of travel range.
-3. **Stage / Park:**
+3git . **Stage / Park:**
    Lets the user select a fixed azimuth (0–345° in 15° steps) to park the array before exit.
 
 
@@ -122,7 +122,7 @@ This tool performs a structured **boresight sequence** independent of the main t
 
 
 
-
+### Software Flow Diagram
 
 
 ---
