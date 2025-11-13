@@ -16,6 +16,7 @@ from pass_visibility import compute_pass_visibility_for_file
 from zoneinfo import ZoneInfo
 from gs232.serial_manager import SerialManager
 from gui.gauges import az_to_compass, init_az_compass, init_el_gauge
+from gui.maps import create_maps, draw_nearsided_background
 
 LOCAL_TZ = ZoneInfo("America/Denver")
 
@@ -97,110 +98,6 @@ def runPredictionTool(checkbox_dict, tle_dict, my_lat, my_lon, tle_path):
     # tle_lookup = load_tle_lookup("amateur.tle")
     tle_lookup = load_tle_lookup(tle_path)
 
-    # ────────────────────────────────────────────────────────────────────
-    # Serial continuity manager
-    # class SerialManager:
-    #     def __init__(self, candidates, baud=9600, timeout=1.0):
-    #         self.candidates = candidates[:]  # list of port names to try
-    #         self.baud = baud
-    #         self.timeout = timeout
-    #         self.ser = None
-    #         self.last_open_port = None
-    #         self._open_any()
-    #
-    #     def _open_any(self):
-    #         ports_to_try = []
-    #         if self.last_open_port:
-    #             ports_to_try.append(self.last_open_port)
-    #         ports_to_try.extend([p for p in self.candidates if p != self.last_open_port])
-    #
-    #         for p in ports_to_try:
-    #             try:
-    #                 self.ser = Serial(
-    #                     port=p,
-    #                     baudrate=self.baud,
-    #                     bytesize=serial.EIGHTBITS,
-    #                     parity=serial.PARITY_NONE,
-    #                     stopbits=serial.STOPBITS_ONE,
-    #                     timeout=self.timeout,
-    #                     xonxoff=False,
-    #                     rtscts=False,
-    #                     dsrdtr=False,
-    #                     write_timeout=1.0,
-    #                 )
-    #                 self.last_open_port = p
-    #                 try:
-    #                     self.ser.reset_input_buffer()
-    #                     self.ser.reset_output_buffer()
-    #                     # self._write_raw(b"P45\r\n")  # prefer 450° mode
-    #                     # _ = self._readline()
-    #                 except Exception:
-    #                     pass
-    #                 print(f"[SER] Opened {p} @ {self.baud} 8N1")
-    #                 return True
-    #             except Exception as e:
-    #                 print(f"[SER] Open {p} failed: {e}")
-    #                 self.ser = None
-    #         return False
-    #
-    #     def ensure_open(self):
-    #         if self.ser and self.ser.is_open:
-    #             return True
-    #         return self._open_any()
-    #
-    #     def close(self):
-    #         try:
-    #             if self.ser:
-    #                 self.ser.close()
-    #                 print("[SER] Closed port")
-    #         except Exception:
-    #             pass
-    #         self.ser = None
-    #
-    #     def _write_raw(self, bcmd):
-    #         if not self.ensure_open():
-    #             raise SerialException("Port not open")
-    #         self.ser.write(bcmd)
-    #         self.ser.flush()
-    #
-    #     def _readline(self):
-    #         if not self.ensure_open():
-    #             return ""
-    #         try:
-    #             return self.ser.readline().decode(errors="ignore").strip()
-    #         except Exception:
-    #             return ""
-    #
-    #     def write_cmd(self, cmd_str, expect_reply=False, retries=1):
-    #         payload = (cmd_str.rstrip() + "\r\n").encode("ascii", errors="ignore")
-    #         attempt = 0
-    #         while attempt <= retries:
-    #             try:
-    #                 self._write_raw(payload)
-    #                 if expect_reply:
-    #                     return self._readline()
-    #                 return ""
-    #             except SerialException:
-    #                 self.close()
-    #                 time.sleep(0.2)
-    #                 self.ensure_open()
-    #                 attempt += 1
-    #         return ""
-    #
-    #     def send_move(self, az, el, echo_c2=True):
-    #         cmd = f"W{int(round(az)):03d} {int(round(el)):03d}"
-    #         reply = ""
-    #         try:
-    #             _ = self.write_cmd(cmd, expect_reply=False, retries=1)
-    #             if echo_c2:
-    #                 reply = self.write_cmd("C2", expect_reply=True, retries=1)
-    #         except Exception:
-    #             self.close()
-    #             self.ensure_open()
-    #         return cmd, reply
-    #
-    #     def query_c2(self):
-    #         return self.write_cmd("C2", expect_reply=True, retries=1)
 
     # Always try these; USB0 preferred per your setup
     ser_mgr = SerialManager(
@@ -214,7 +111,6 @@ def runPredictionTool(checkbox_dict, tle_dict, my_lat, my_lon, tle_path):
     import numpy as np
     import matplotlib.pyplot as plt
     import matplotlib.patheffects as pe
-    from mpl_toolkits.basemap import Basemap
     from matplotlib import animation
     from datetime import datetime
     from collections import deque
@@ -322,37 +218,39 @@ def runPredictionTool(checkbox_dict, tle_dict, my_lat, my_lon, tle_path):
 
 
     # Maps
-    map1 = Basemap(projection='mill', llcrnrlat=-90, urcrnrlat=90,
-                   llcrnrlon=-180, urcrnrlon=180, resolution='c', ax=ax1)
-    map1.drawmapboundary(fill_color='white')
-    map1.fillcontinents(color='gray', lake_color='blue')
-    map1.drawcoastlines()
-    ax1.set_facecolor('white')
-    ax1.set_title("Global View", color='black')
-    x_q_g, y_q_g = map1(my_lon, my_lat)
-    map1.plot(x_q_g, y_q_g, 'go', markersize=8)
-    ax1.annotate('Me', xy=(x_q_g, y_q_g), xytext=(x_q_g + 5, y_q_g + 5), color='black')
+    map1, map2 = create_maps(ax1, ax2, my_lat, my_lon)
 
-    map2 = Basemap(projection='nsper', lon_0=my_lon, lat_0=my_lat,
-                   satellite_height=2000 * 1000.0, resolution='l', ax=ax2)
+    # map1 = Basemap(projection='mill', llcrnrlat=-90, urcrnrlat=90,
+    #                llcrnrlon=-180, urcrnrlon=180, resolution='c', ax=ax1)
+    # map1.drawmapboundary(fill_color='white')
+    # map1.fillcontinents(color='gray', lake_color='blue')
+    # map1.drawcoastlines()
+    # ax1.set_facecolor('white')
+    # ax1.set_title("Global View", color='black')
+    # x_q_g, y_q_g = map1(my_lon, my_lat)
+    # map1.plot(x_q_g, y_q_g, 'go', markersize=8)
+    # ax1.annotate('Me', xy=(x_q_g, y_q_g), xytext=(x_q_g + 5, y_q_g + 5), color='black')
+    #
+    # map2 = Basemap(projection='nsper', lon_0=my_lon, lat_0=my_lat,
+    #                satellite_height=2000 * 1000.0, resolution='l', ax=ax2)
+    #
+    # def draw_nearsided_background():
+    #     ax2.set_facecolor('black')
+    #     map2.ax = ax2
+    #     map2.drawmapboundary(fill_color='aqua')
+    #     map2.drawmapboundary(fill_color='#1a1a1a')  # dark gray ocean
+    #     map2.fillcontinents(color='#444444', lake_color='#1a1a1a', zorder=1)
+    #     map2.drawcoastlines(color='white', linewidth=0.4)
+    #     map2.drawparallels(range(-90, 91, 10), color='gray', dashes=[1, 1], linewidth=0.3)
+    #     map2.drawmeridians(range(-180, 181, 10), color='gray', dashes=[1, 1], linewidth=0.3)
+    #     map2.drawstates()
+    #     map2.drawcountries()
+    #     xq, yq = map2(my_lon, my_lat)
+    #     ax2.plot(xq, yq, 'go', markersize=8, zorder=5)
+    #     ax2.annotate('Me', xy=(xq, yq), xytext=(xq + 5, yq + 5), color='white', zorder=6)
+    #     ax2.set_title("Near-Sided (QTH-centered)", color='white')
 
-    def draw_nearsided_background():
-        ax2.set_facecolor('black')
-        map2.ax = ax2
-        map2.drawmapboundary(fill_color='aqua')
-        map2.drawmapboundary(fill_color='#1a1a1a')  # dark gray ocean
-        map2.fillcontinents(color='#444444', lake_color='#1a1a1a', zorder=1)
-        map2.drawcoastlines(color='white', linewidth=0.4)
-        map2.drawparallels(range(-90, 91, 10), color='gray', dashes=[1, 1], linewidth=0.3)
-        map2.drawmeridians(range(-180, 181, 10), color='gray', dashes=[1, 1], linewidth=0.3)
-        map2.drawstates()
-        map2.drawcountries()
-        xq, yq = map2(my_lon, my_lat)
-        ax2.plot(xq, yq, 'go', markersize=8, zorder=5)
-        ax2.annotate('Me', xy=(xq, yq), xytext=(xq + 5, yq + 5), color='white', zorder=6)
-        ax2.set_title("Near-Sided (QTH-centered)", color='white')
-
-    draw_nearsided_background()
+    # draw_nearsided_background()
 
     track_objs, track_lbls = [], []
 
@@ -545,7 +443,10 @@ def runPredictionTool(checkbox_dict, tle_dict, my_lat, my_lon, tle_path):
         )
 
         # ---- Maps ----
-        ax2.cla(); draw_nearsided_background()
+        # ax2.cla(); draw_nearsided_background()
+        ax2.cla()
+        draw_nearsided_background(map2, ax2, my_lat, my_lon)
+
         subpoint = (sat.at(t)).subpoint()
         sat_lat = subpoint.latitude.degrees
         sat_lon = subpoint.longitude.degrees
