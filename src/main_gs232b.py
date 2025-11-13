@@ -8,10 +8,6 @@ import threading
 import tkinter as tk
 from fetch_tle import fetch_group
 from visibility import has_visible_pass_next_hour  # from the separate module
-
-# from pointing import az_el_from_geodetic  # (kept for compatibility, not used for Skyfield path)
-# import serial
-# from serial import SerialException, Serial
 from pass_visibility import compute_pass_visibility_for_file
 from zoneinfo import ZoneInfo
 from gs232.serial_manager import SerialManager
@@ -219,38 +215,6 @@ def runPredictionTool(checkbox_dict, tle_dict, my_lat, my_lon, tle_path):
 
     # Maps
     map1, map2 = create_maps(ax1, ax2, my_lat, my_lon)
-
-    # map1 = Basemap(projection='mill', llcrnrlat=-90, urcrnrlat=90,
-    #                llcrnrlon=-180, urcrnrlon=180, resolution='c', ax=ax1)
-    # map1.drawmapboundary(fill_color='white')
-    # map1.fillcontinents(color='gray', lake_color='blue')
-    # map1.drawcoastlines()
-    # ax1.set_facecolor('white')
-    # ax1.set_title("Global View", color='black')
-    # x_q_g, y_q_g = map1(my_lon, my_lat)
-    # map1.plot(x_q_g, y_q_g, 'go', markersize=8)
-    # ax1.annotate('Me', xy=(x_q_g, y_q_g), xytext=(x_q_g + 5, y_q_g + 5), color='black')
-    #
-    # map2 = Basemap(projection='nsper', lon_0=my_lon, lat_0=my_lat,
-    #                satellite_height=2000 * 1000.0, resolution='l', ax=ax2)
-    #
-    # def draw_nearsided_background():
-    #     ax2.set_facecolor('black')
-    #     map2.ax = ax2
-    #     map2.drawmapboundary(fill_color='aqua')
-    #     map2.drawmapboundary(fill_color='#1a1a1a')  # dark gray ocean
-    #     map2.fillcontinents(color='#444444', lake_color='#1a1a1a', zorder=1)
-    #     map2.drawcoastlines(color='white', linewidth=0.4)
-    #     map2.drawparallels(range(-90, 91, 10), color='gray', dashes=[1, 1], linewidth=0.3)
-    #     map2.drawmeridians(range(-180, 181, 10), color='gray', dashes=[1, 1], linewidth=0.3)
-    #     map2.drawstates()
-    #     map2.drawcountries()
-    #     xq, yq = map2(my_lon, my_lat)
-    #     ax2.plot(xq, yq, 'go', markersize=8, zorder=5)
-    #     ax2.annotate('Me', xy=(xq, yq), xytext=(xq + 5, yq + 5), color='white', zorder=6)
-    #     ax2.set_title("Near-Sided (QTH-centered)", color='white')
-
-    # draw_nearsided_background()
 
     track_objs, track_lbls = [], []
 
