@@ -124,8 +124,6 @@ This tool performs a structured **boresight sequence** independent of the main t
 
 ### Software Flow Diagram
 
-
----
 ```mermaid
 ---
 config:
