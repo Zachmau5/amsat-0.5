@@ -10,10 +10,11 @@ from fetch_tle import fetch_group
 from visibility import has_visible_pass_next_hour  # from the separate module
 
 # from pointing import az_el_from_geodetic  # (kept for compatibility, not used for Skyfield path)
-import serial
-from serial import SerialException, Serial
+# import serial
+# from serial import SerialException, Serial
 from pass_visibility import compute_pass_visibility_for_file
 from zoneinfo import ZoneInfo
+from gs232.serial_manager import SerialManager
 
 LOCAL_TZ = ZoneInfo("America/Denver")
 
@@ -97,108 +98,108 @@ def runPredictionTool(checkbox_dict, tle_dict, my_lat, my_lon, tle_path):
 
     # ────────────────────────────────────────────────────────────────────
     # Serial continuity manager
-    class SerialManager:
-        def __init__(self, candidates, baud=9600, timeout=1.0):
-            self.candidates = candidates[:]  # list of port names to try
-            self.baud = baud
-            self.timeout = timeout
-            self.ser = None
-            self.last_open_port = None
-            self._open_any()
-
-        def _open_any(self):
-            ports_to_try = []
-            if self.last_open_port:
-                ports_to_try.append(self.last_open_port)
-            ports_to_try.extend([p for p in self.candidates if p != self.last_open_port])
-
-            for p in ports_to_try:
-                try:
-                    self.ser = Serial(
-                        port=p,
-                        baudrate=self.baud,
-                        bytesize=serial.EIGHTBITS,
-                        parity=serial.PARITY_NONE,
-                        stopbits=serial.STOPBITS_ONE,
-                        timeout=self.timeout,
-                        xonxoff=False,
-                        rtscts=False,
-                        dsrdtr=False,
-                        write_timeout=1.0,
-                    )
-                    self.last_open_port = p
-                    try:
-                        self.ser.reset_input_buffer()
-                        self.ser.reset_output_buffer()
-                        # self._write_raw(b"P45\r\n")  # prefer 450° mode
-                        # _ = self._readline()
-                    except Exception:
-                        pass
-                    print(f"[SER] Opened {p} @ {self.baud} 8N1")
-                    return True
-                except Exception as e:
-                    print(f"[SER] Open {p} failed: {e}")
-                    self.ser = None
-            return False
-
-        def ensure_open(self):
-            if self.ser and self.ser.is_open:
-                return True
-            return self._open_any()
-
-        def close(self):
-            try:
-                if self.ser:
-                    self.ser.close()
-                    print("[SER] Closed port")
-            except Exception:
-                pass
-            self.ser = None
-
-        def _write_raw(self, bcmd):
-            if not self.ensure_open():
-                raise SerialException("Port not open")
-            self.ser.write(bcmd)
-            self.ser.flush()
-
-        def _readline(self):
-            if not self.ensure_open():
-                return ""
-            try:
-                return self.ser.readline().decode(errors="ignore").strip()
-            except Exception:
-                return ""
-
-        def write_cmd(self, cmd_str, expect_reply=False, retries=1):
-            payload = (cmd_str.rstrip() + "\r\n").encode("ascii", errors="ignore")
-            attempt = 0
-            while attempt <= retries:
-                try:
-                    self._write_raw(payload)
-                    if expect_reply:
-                        return self._readline()
-                    return ""
-                except SerialException:
-                    self.close()
-                    time.sleep(0.2)
-                    self.ensure_open()
-                    attempt += 1
-            return ""
-
-        def send_move(self, az, el, echo_c2=True):
-            cmd = f"W{int(round(az)):03d} {int(round(el)):03d}"
-            reply = ""
-            try:
-                _ = self.write_cmd(cmd, expect_reply=False, retries=1)
-                if echo_c2:
-                    reply = self.write_cmd("C2", expect_reply=True, retries=1)
-            except Exception:
-                self.close()
-                self.ensure_open()
-            return cmd, reply
-
-        def query_c2(self):
-            return self.write_cmd("C2", expect_reply=True, retries=1)
+    # class SerialManager:
+    #     def __init__(self, candidates, baud=9600, timeout=1.0):
+    #         self.candidates = candidates[:]  # list of port names to try
+    #         self.baud = baud
+    #         self.timeout = timeout
+    #         self.ser = None
+    #         self.last_open_port = None
+    #         self._open_any()
+    #
+    #     def _open_any(self):
+    #         ports_to_try = []
+    #         if self.last_open_port:
+    #             ports_to_try.append(self.last_open_port)
+    #         ports_to_try.extend([p for p in self.candidates if p != self.last_open_port])
+    #
+    #         for p in ports_to_try:
+    #             try:
+    #                 self.ser = Serial(
+    #                     port=p,
+    #                     baudrate=self.baud,
+    #                     bytesize=serial.EIGHTBITS,
+    #                     parity=serial.PARITY_NONE,
+    #                     stopbits=serial.STOPBITS_ONE,
+    #                     timeout=self.timeout,
+    #                     xonxoff=False,
+    #                     rtscts=False,
+    #                     dsrdtr=False,
+    #                     write_timeout=1.0,
+    #                 )
+    #                 self.last_open_port = p
+    #                 try:
+    #                     self.ser.reset_input_buffer()
+    #                     self.ser.reset_output_buffer()
+    #                     # self._write_raw(b"P45\r\n")  # prefer 450° mode
+    #                     # _ = self._readline()
+    #                 except Exception:
+    #                     pass
+    #                 print(f"[SER] Opened {p} @ {self.baud} 8N1")
+    #                 return True
+    #             except Exception as e:
+    #                 print(f"[SER] Open {p} failed: {e}")
+    #                 self.ser = None
+    #         return False
+    #
+    #     def ensure_open(self):
+    #         if self.ser and self.ser.is_open:
+    #             return True
+    #         return self._open_any()
+    #
+    #     def close(self):
+    #         try:
+    #             if self.ser:
+    #                 self.ser.close()
+    #                 print("[SER] Closed port")
+    #         except Exception:
+    #             pass
+    #         self.ser = None
+    #
+    #     def _write_raw(self, bcmd):
+    #         if not self.ensure_open():
+    #             raise SerialException("Port not open")
+    #         self.ser.write(bcmd)
+    #         self.ser.flush()
+    #
+    #     def _readline(self):
+    #         if not self.ensure_open():
+    #             return ""
+    #         try:
+    #             return self.ser.readline().decode(errors="ignore").strip()
+    #         except Exception:
+    #             return ""
+    #
+    #     def write_cmd(self, cmd_str, expect_reply=False, retries=1):
+    #         payload = (cmd_str.rstrip() + "\r\n").encode("ascii", errors="ignore")
+    #         attempt = 0
+    #         while attempt <= retries:
+    #             try:
+    #                 self._write_raw(payload)
+    #                 if expect_reply:
+    #                     return self._readline()
+    #                 return ""
+    #             except SerialException:
+    #                 self.close()
+    #                 time.sleep(0.2)
+    #                 self.ensure_open()
+    #                 attempt += 1
+    #         return ""
+    #
+    #     def send_move(self, az, el, echo_c2=True):
+    #         cmd = f"W{int(round(az)):03d} {int(round(el)):03d}"
+    #         reply = ""
+    #         try:
+    #             _ = self.write_cmd(cmd, expect_reply=False, retries=1)
+    #             if echo_c2:
+    #                 reply = self.write_cmd("C2", expect_reply=True, retries=1)
+    #         except Exception:
+    #             self.close()
+    #             self.ensure_open()
+    #         return cmd, reply
+    #
+    #     def query_c2(self):
+    #         return self.write_cmd("C2", expect_reply=True, retries=1)
 
     # Always try these; USB0 preferred per your setup
     ser_mgr = SerialManager(
@@ -217,7 +218,7 @@ def runPredictionTool(checkbox_dict, tle_dict, my_lat, my_lon, tle_path):
     from datetime import datetime
     from collections import deque
     from skyfield.api import load, wgs84, EarthSatellite
-
+    from matplotlib.widgets import Button
     ts = load.timescale()
     _sat_cache = {}
 
@@ -265,6 +266,23 @@ def runPredictionTool(checkbox_dict, tle_dict, my_lat, my_lon, tle_path):
         color='black', fontsize=11, family='monospace',
         ha='left', va='top'
     )
+    # ────────────────────────────────────────────────────────────────────
+    # STOP button (sends 'S' then closes tracking window)
+    # ────────────────────────────────────────────────────────────────────
+    # Place a small button in figure coordinates (left, bottom, width, height)
+    stop_ax = fig.add_axes([0.82, 0.02, 0.14, 0.05])  # tweak if you want
+    stop_button = Button(stop_ax, "STOP + CLOSE")
+
+    def on_stop_clicked(_event):
+        try:
+            # send S to GS-232B (best-effort)
+            ser_mgr.stop()
+        except Exception as e:
+            print(f"[SER] Stop error: {e}")
+        # Close this tracking figure; control returns to Tk selector
+        plt.close(fig)
+
+    stop_button.on_clicked(on_stop_clicked)
 
     # ────────────────────────────────────────────────────────────────────
     # Anti-jitter knobs
@@ -332,45 +350,7 @@ def runPredictionTool(checkbox_dict, tle_dict, my_lat, my_lon, tle_path):
                     ha='center', va='bottom', fontsize=11,
                     path_effects=[pe.withStroke(linewidth=3, foreground='black')])
 
-    # def init_az_compass(ax):
-    #     ax.set_facecolor("#101010")
-    #     ax.set_theta_zero_location('N')   # 0° at North
-    #     ax.set_theta_direction(-1)        # clockwise
-    #     ax.set_rlim(0, 1.0)
-    #     ax.set_rticks([])
-    #     ax.set_xticks([])
-    #
-    #     # Hide default polar spine
-    #     ax.spines["polar"].set_visible(False)
-    #
-    #     # Outer ring
-    #     ax.plot([0, 2 * math.pi], [1.0, 1.0],
-    #             linewidth=1.2, color="#888888", alpha=0.9)
-    #
-    #     # Cardinal labels
-    #     for ang, lab in [(0, 'N'), (90, 'E'), (180, 'S'), (270, 'W')]:
-    #         ax.text(
-    #             math.radians(ang),
-    #             1.08,
-    #             lab,
-    #             color="white",
-    #             ha="center",
-    #             va="center",
-    #             fontsize=11,
-    #             path_effects=[pe.withStroke(linewidth=3, foreground="black")]
-    #         )
-    #
-    #     # Title
-    #     ax.text(
-    #         0.5, 1.18, "Azimuth",
-    #         transform=ax.transAxes,
-    #         ha="center",
-    #         va="bottom",
-    #         color="white",
-    #         fontsize=12,
-    #         path_effects=[pe.withStroke(linewidth=3, foreground="black")]
-    #     )
-    #
+
     def init_el_gauge(ax):
         ax.set_facecolor('black')
         ax.set_theta_zero_location('W'); ax.set_theta_direction(-1)
@@ -394,85 +374,6 @@ def runPredictionTool(checkbox_dict, tle_dict, my_lat, my_lon, tle_path):
             ax.plot([math.radians(0), math.radians(90)], [r, r],
                     color='white', alpha=0.15, linewidth=1)
 
-    # def init_el_gauge(ax):
-    #     """Clean elevation gauge: 0° at horizon, 90° at zenith."""
-    #     ax.set_facecolor("#101010")
-    #     ax.set_theta_zero_location('E')   # 0° at right (horizon)
-    #     ax.set_theta_direction(1)         # counter-clockwise
-    #     ax.set_thetamin(0)
-    #     ax.set_thetamax(90)
-    #     ax.set_rlim(0, 1.0)
-    #     ax.set_rticks([])
-    #     ax.set_xticks([])
-    #
-    #     ax.spines["polar"].set_visible(False)
-    #
-    #     # Arc for 0–90°
-    #     ax.plot(
-    #         [math.radians(a) for a in range(0, 91, 3)],
-    #         [1.0] * 31,
-    #         linewidth=1.2,
-    #         color="#888888",
-    #         alpha=0.9,
-    #     )
-    #
-    #     # Horizon / Zenith labels
-    #     ax.text(
-    #         math.radians(0),
-    #         1.08,
-    #         "0°",
-    #         color="white",
-    #         ha="center",
-    #         va="center",
-    #         fontsize=9,
-    #         path_effects=[pe.withStroke(linewidth=3, foreground="black")]
-    #     )
-    #     ax.text(
-    #         math.radians(90),
-    #         1.08,
-    #         "90°",
-    #         color="white",
-    #         ha="center",
-    #         va="center",
-    #         fontsize=9,
-    #         path_effects=[pe.withStroke(linewidth=3, foreground="black")]
-    #     )
-    #
-    #     # Title
-    #     ax.text(
-    #         0.5, -0.18, "Elevation",
-    #         transform=ax.transAxes,
-    #         ha="center",
-    #         va="top",
-    #         color="white",
-    #         fontsize=12,
-    #         path_effects=[pe.withStroke(linewidth=3, foreground="black")]
-    #     )
-
-    # def init_az_compass(ax):
-    #     ax.set_facecolor('black')
-    #     ax.set_theta_zero_location('N'); ax.set_theta_direction(-1)
-    #     ax.set_rlim(0, 1.0); ax.set_rticks([]); ax.set_xticklabels([])
-    #     ax.text(0.5, 1.08, "Azimuth", transform=ax.transAxes, ha='center', va='bottom',
-    #             color='white', fontsize=12,
-    #             path_effects=[pe.withStroke(linewidth=3, foreground='black')])
-    #     for r in (0.33, 0.66, 1.0):
-    #         ax.plot([0, 2*math.pi], [r, r], color='white', alpha=0.15, linewidth=1)
-    #     for ang in range(0, 360, 30):
-    #         t = math.radians(ang)
-    #         ax.plot([t, t], [0.0, 1.0], color='white', alpha=0.15, linewidth=1)
-    #     for ang, lab in [(0, 'N'), (90, 'E'), (180, 'S'), (270, 'W')]:
-    #         ax.text(math.radians(ang), 0.7, lab, color='white', ha='center', va='bottom', fontsize=10)
-    #
-    # def init_el_gauge(ax):
-    #     ax.set_facecolor('black')
-    #     ax.set_theta_zero_location('W'); ax.set_theta_direction(-1)
-    #     ax.set_thetamin(0); ax.set_thetamax(90)
-    #     ax.set_rlim(0, 1.0); ax.set_rticks([]); ax.set_xticklabels([])
-    #     ax_el.text(0.5, -0.18, "Elevation", transform=ax_el.transAxes, ha='center', va='top',
-    #                color='white', fontsize=12,
-    #                path_effects=[pe.withStroke(linewidth=3, foreground='black')])
-    #     ax.bar(math.radians(5), 1.0, width=math.radians(10), bottom=0.0, alpha=0.14, color='red', edgecolor=None)
 
     # Maps
     map1 = Basemap(projection='mill', llcrnrlat=-90, urcrnrlat=90,
@@ -615,37 +516,7 @@ def runPredictionTool(checkbox_dict, tle_dict, my_lat, my_lon, tle_path):
         serial_lines.append(f"{now:%H:%M:%S}  {first_name:<18} → {cmd_echo}")
         serial_text.set_text("\n".join(serial_lines))
 
-        # ---- Gauges ----
-        # theta = math.radians(az_deg % 360.0)
-        # ax_az.plot([0, theta], [0, 1.0], color='yellow', linewidth=3, zorder=5)
-        # ax_az.plot([theta], [1.0], marker='o', markersize=8,
-        #            markeredgecolor='black', markerfacecolor='yellow', zorder=6)
-        # el_disp = max(0.0, min(90.0, el_deg))
-        # theta_el = math.radians(el_disp)
-        # ax_el.plot([math.radians(0), theta_el], [0, 1.0], color='yellow', linewidth=3, zorder=5)
-        # ax_el.plot([theta_el], [1.0], marker='o', markersize=8,
-        #            markeredgecolor='black', markerfacecolor='yellow', zorder=6)
-        #         # ---- Commanded readouts (left of gauges) ----
-        # # Prefer the just-computed command; fallback to the last one we actually sent.
-        # az_disp = az_cmd_local if az_cmd_local is not None else last_cmd.get("az")
-        # el_disp = el_cmd_local if el_cmd_local is not None else last_cmd.get("el")
-        #
-        # def _fmt_deg(v):
-        #     return f"{v:6.1f}°" if (v is not None) else "  --.-°"
-        #
-        # ax_az.text(
-        #     -1.5, 0.50, f"{_fmt_deg(az_disp)}",
-        #     transform=ax_az.transAxes, ha="left", va="center",
-        #     color="white", fontsize=12, family="monospace",
-        #     path_effects=[pe.withStroke(linewidth=3, foreground="black")]
-        # )
-        #
-        # ax_el.text(
-        #     -1.5, 0.50, f"{_fmt_deg(el_disp)}",
-        #     transform=ax_el.transAxes, ha="left", va="center",
-        #     color="white", fontsize=12, family="monospace",
-        #     path_effects=[pe.withStroke(linewidth=3, foreground="black")]
-        # )
+
         # ---- Gauges ----
         # Redraw cleaned backgrounds
         ax_az.cla()
@@ -726,42 +597,6 @@ def runPredictionTool(checkbox_dict, tle_dict, my_lat, my_lon, tle_path):
             family="monospace",
             path_effects=[pe.withStroke(linewidth=3, foreground="black")]
         )
-
-        # # ---- Commanded readouts (digital, centered in gauges) ----
-        # az_disp = az_cmd_local if az_cmd_local is not None else last_cmd.get("az")
-        # el_disp_cmd = el_cmd_local if el_cmd_local is not None else last_cmd.get("el")
-        #
-        # def _fmt_deg(v):
-        #     return f"{v:6.1f}°" if (v is not None) else "--.-°"
-        #
-        # # Azimuth: numeric + compass label
-        # az_compass = az_to_compass(az_disp) if az_disp is not None else ""
-        # ax_az.text(
-        #     0.5, 0.5,
-        #     f"{_fmt_deg(az_disp)}\n{az_compass}",
-        #     transform=ax_az.transAxes,
-        #     ha="center",
-        #     va="center",
-        #     color="white",
-        #     fontsize=12,
-        #     family="monospace",
-        #     path_effects=[pe.withStroke(linewidth=3, foreground="black")]
-        # )
-        #
-        # # Elevation: numeric only
-        # ax_el.text(
-        #     0.5, 0.5,
-        #     _fmt_deg(el_disp_cmd),
-        #     transform=ax_el.transAxes,
-        #     ha="center",
-        #     va="center",
-        #     color="white",
-        #     fontsize=12,
-        #     family="monospace",
-        #     path_effects=[pe.withStroke(linewidth=3, foreground="black")]
-        # )
-
-
 
         # ---- Maps ----
         ax2.cla(); draw_nearsided_background()
@@ -996,32 +831,6 @@ def SetupWindow(root, my_lat, my_lon, tle_cache=None, vis_cache=None):
                 row_ctr = 0
                 col_ctr += 1
 
-        # for sat_name in sorted(tle_dict.keys()):
-        #     vis_summary = visibility_map.get(sat_name)
-        #     has_pass = bool(vis_summary and vis_summary.passes)
-        #
-        #     bg_color = "pale green" if has_pass else "white"
-        #     active_bg = "pale green" if has_pass else "white"
-        #
-        #     var = tk.IntVar(value=0)
-        #     cb = tk.Checkbutton(
-        #         list_frame,
-        #         text=sat_name,
-        #         variable=var,
-        #         fg="black",
-        #         bg=bg_color,
-        #         activebackground=active_bg,
-        #         anchor="w",
-        #         selectcolor=bg_color,
-        #     )
-        #     cb.grid(row=row_ctr, column=col_ctr, sticky=tk.W, pady=2, padx=4)
-        #     checkbox_dict[sat_name] = var
-        #
-        #     row_ctr += 1
-        #     if row_ctr >= 20:
-        #         row_ctr = 0
-        #         col_ctr += 1
-
         list_frame.update_idletasks()
         canvas.configure(scrollregion=canvas.bbox("all"))
 
@@ -1088,27 +897,3 @@ if __name__ == "__main__":
                                 vis_cache=vis_cache)
     root.mainloop()
 
-
-
-# if __name__ == "__main__":
-#     from fetch_tle import fetch_group
-#
-#     # Ground station
-#     my_lat = 41.19502233287143
-#     my_lon = -111.94128097234622
-#
-#     # Pre-fetch all TLE groups at startup
-#     GROUP_KEYS = ["Amateur", "NOAA", "GOES", "Weather", "CUBESAT", "SATNOGS"]
-#     tle_cache = {}
-#
-#     for key in GROUP_KEYS:
-#         try:
-#             tle_path = fetch_group(key)  # returns local TLE filename for this group
-#             tle_cache[key] = tle_path
-#             print(f"[TLE] Prefetched group {key}: {tle_path}")
-#         except Exception as e:
-#             print(f"[TLE] Failed to fetch group {key}: {e}")
-#
-#     root = tk.Tk()
-#     checkbox_dict = SetupWindow(root, my_lat, my_lon, tle_cache=tle_cache)
-#     root.mainloop()

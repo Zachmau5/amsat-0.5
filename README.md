@@ -1,4 +1,11 @@
-## Brief Screenshot of what we are playing with
+## AMSAT Ground Station Tracking Software
+### A dual-band amateur satellite tracking system using:
+- Skyfield for orbital propagation
+- Tkinter for the GUI
+- Basemap for global + near-sided maps
+- Yaesu G-5500DC + GS-232B rotator interface
+- Automatic TLE fetching and visibility prediction
+
 <img width="800" height="470" alt="Tracking GUI" src="https://raw.githubusercontent.com/Zachmau5/amsat-1.0/refs/heads/main/assets/capture.png" />
 
 
@@ -95,6 +102,16 @@ amsat/
 ├── assets/
 ├── src/
 │ ├── tle/
+│ │   ├── amateur.tle
+│ │   ├── cubesat.tle
+│ │   ├── goes.tle
+│ │   ├── noaa.tle
+│ │   ├── satnogs.tle
+│ │   └── weather.tle
+│ ├── gs232/
+│ │   ├── __init__.py
+│ │   ├── commands.py
+│ │   └── serial_manager.py
 │ ├── calibration_wizard.py
 │ ├── constants.py
 │ ├── ccoordinate_conversion.py
