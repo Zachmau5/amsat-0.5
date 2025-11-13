@@ -9,6 +9,34 @@
 <img width="800" height="470" alt="Tracking GUI" src="https://raw.githubusercontent.com/Zachmau5/amsat-1.0/refs/heads/main/assets/capture.png" />
 
 
+```
+amsat/
+├── archive/
+├── assets/
+├── src/
+│ ├── tle/
+│ │   ├── amateur.tle
+│ │   ├── cubesat.tle
+│ │   ├── goes.tle
+│ │   ├── noaa.tle
+│ │   ├── satnogs.tle
+│ │   └── weather.tle
+│ ├── gs232/
+│ │   ├── __init__.py
+│ │   ├── commands.py
+│ │   └── serial_manager.py
+│ ├── calibration_wizard.py
+│ ├── constants.py
+│ ├── ccoordinate_conversion.py
+│ ├── fetch_tle.py
+│ ├── keplerian_parser.py
+│ ├── main_gs232b.py
+│ ├── pass_visibility.py
+│ ├── skyfield_predictor.py
+│ ├── test_pass_visibility.py
+│ └── visibility.py
+└── README.md
+```
 
 ### Installation Steps
 > **Note:** Run all setup commands from the repository root.
@@ -96,34 +124,7 @@ This tool performs a structured **boresight sequence** independent of the main t
 
 ##  Repository Structure
 
-```
-amsat/
-├── archive/
-├── assets/
-├── src/
-│ ├── tle/
-│ │   ├── amateur.tle
-│ │   ├── cubesat.tle
-│ │   ├── goes.tle
-│ │   ├── noaa.tle
-│ │   ├── satnogs.tle
-│ │   └── weather.tle
-│ ├── gs232/
-│ │   ├── __init__.py
-│ │   ├── commands.py
-│ │   └── serial_manager.py
-│ ├── calibration_wizard.py
-│ ├── constants.py
-│ ├── ccoordinate_conversion.py
-│ ├── fetch_tle.py
-│ ├── keplerian_parser.py
-│ ├── main_gs232b.py
-│ ├── pass_visibility.py
-│ ├── skyfield_predictor.py
-│ ├── test_pass_visibility.py
-│ └── visibility.py
-└── README.md
-```
+
 
 
 ---
