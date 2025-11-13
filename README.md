@@ -113,9 +113,7 @@ This tool performs a structured **boresight sequence** independent of the main t
    Sends `W000 000` and allows the user to verify azimuth alignment.
 2. **Point to Due South:**
    Sends `W180 000` and allows confirmation of travel range.
-3. **Full 360° Sweep (Speed-Based):**
-   Uses rotation speed commands (`X1`–`X4`) and a continuous clockwise rotation (`R`) to confirm smooth motion and limits.
-4. **Stage / Park:**
+3. **Stage / Park:**
    Lets the user select a fixed azimuth (0–345° in 15° steps) to park the array before exit.
 
 
