@@ -131,7 +131,7 @@ config:
   theme: neutral
   look: classic
 ---
-flowchart TD
+flowchart LR
     A["Program start"] --> B["Set ground station location"]
     B --> C["Prefetch TLE groups into cache"]
     C --> D["Compute visibility cache"]
