@@ -8,6 +8,7 @@
 
 <img width="800" height="470" alt="Tracking GUI" src="https://raw.githubusercontent.com/Zachmau5/amsat-1.0/refs/heads/main/assets/capture.png" />
 
+###  Repository Structure
 
 ```
 amsat/
@@ -122,7 +123,6 @@ This tool performs a structured **boresight sequence** independent of the main t
 ---
 
 
-##  Repository Structure
 
 
 
