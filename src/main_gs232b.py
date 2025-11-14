@@ -16,6 +16,9 @@ from gui.maps import create_maps, draw_nearsided_background
 
 LOCAL_TZ = ZoneInfo("America/Denver")
 
+# Keep references to animations so they don't get garbage-collected
+_ANIMATIONS = []
+
 # 1. Kill anything else holding the port
 # lsof /dev/ttyUSB0
 # fuser -v /dev/ttyUSB0
@@ -163,8 +166,13 @@ def runPredictionTool(checkbox_dict, tle_dict, my_lat, my_lon, tle_path):
     # STOP button (sends 'S' then closes tracking window)
     # ────────────────────────────────────────────────────────────────────
     # Place a small button in figure coordinates (left, bottom, width, height)
-    stop_ax = fig.add_axes([0.82, 0.02, 0.14, 0.05])  # tweak if you want
-    stop_button = Button(stop_ax, "STOP + CLOSE")
+    stop_ax = fig.add_axes([0.82, 0.02, 0.14, 0.05])
+    stop_button = Button(
+        stop_ax,
+        "STOP + CLOSE",
+        color="#A12731",       # background color
+        hovercolor="#D64545"   # hover color
+    )
 
     def on_stop_clicked(_event):
         try:
@@ -439,6 +447,7 @@ def runPredictionTool(checkbox_dict, tle_dict, my_lat, my_lon, tle_path):
     ani = animation.FuncAnimation(fig, animate, fargs=(selected,),
                                   interval=600, blit=False, repeat=False)
 
+    _ANIMATIONS.append(ani)
 
     import matplotlib.pyplot as plt
     plt.show()
@@ -707,4 +716,3 @@ if __name__ == "__main__":
                                 tle_cache=tle_cache,
                                 vis_cache=vis_cache)
     root.mainloop()
-

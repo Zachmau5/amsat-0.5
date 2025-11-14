@@ -26,6 +26,10 @@ amsat/
 │ │   ├── __init__.py
 │ │   ├── commands.py
 │ │   └── serial_manager.py
+│ ├── gui/
+│ │   ├── __init__.py
+│ │   ├── gauges.py
+│ │   └── maps.py
 │ ├── calibration_wizard.py
 │ ├── constants.py
 │ ├── ccoordinate_conversion.py
