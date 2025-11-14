@@ -198,41 +198,4 @@ def compute_pass_visibility_for_file(
     return summaries
 
 
-# def compute_pass_visibility_for_file(
-#     tle_path: str,
-#     my_lat: float,
-#     my_lon: float,
-#     window_minutes: float = 30.0,
-#     min_el_deg: float = 20.0,
-#     dt_sec: float = 20.0,
-# ) -> Dict[str, SatPassSummary]:
-#     """
-#     For all satellites in the TLE file at `tle_path`, compute visibility
-#     passes above `min_el_deg` elevation for the next `window_minutes`.
-#
-#     Returns:
-#         dict[sat_name] = SatPassSummary(...)
-#         where sat_name is the name line from the TLE.
-#     """
-#     now = datetime.now(timezone.utc)
-#     end_dt = now + timedelta(minutes=window_minutes)
-#
-#     tle_blocks = _read_tle_file(tle_path)
-#     summaries: Dict[str, SatPassSummary] = {}
-#
-#     for name, l1, l2 in tle_blocks:
-#         sat = EarthSatellite(l1, l2, name, _ts)
-#
-#         passes = _compute_passes_for_sat(
-#             sat=sat,
-#             my_lat=my_lat,
-#             my_lon=my_lon,
-#             start_dt=now,
-#             end_dt=end_dt,
-#             dt_sec=dt_sec,
-#             min_el_deg=min_el_deg,
-#         )
-#
-#         summaries[name] = SatPassSummary(name=name, passes=passes)
-#
-#     return summaries
+
