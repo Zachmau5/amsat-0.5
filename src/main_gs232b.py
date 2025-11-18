@@ -7,7 +7,7 @@ import threading
 
 import tkinter as tk
 from fetch_tle import fetch_group
-from visibility import has_visible_pass_next_hour  # from the separate module
+# from visibility import has_visible_pass_next_hour  # from the separate module
 from pass_visibility import compute_pass_visibility_for_file
 from zoneinfo import ZoneInfo
 from gs232.serial_manager import SerialManager
